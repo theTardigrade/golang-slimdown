@@ -1,5 +1,10 @@
 package slimdown
 
+import (
+	"strings"
+	"unicode"
+)
+
 type tokenType uint8
 
 const (
@@ -26,6 +31,7 @@ const (
 	tokenTypeParenthesisClose
 	tokenTypeSquareBracketOpen
 	tokenTypeSquareBracketClose
+	tokenTypeLink
 )
 
 var (
@@ -37,10 +43,11 @@ var (
 		tokenTypeEqualsDouble:      []string{"mark"},
 		tokenTypeAsterisk:          []string{"em"},
 		tokenTypeAsteriskDouble:    []string{"strong"},
-		tokenTypeAsteriskTriple:    []string{"strong", "em"},
-		tokenTypeUnderscore:        []string{"em"},
-		tokenTypeUnderscoreDouble:  []string{"strong"},
-		tokenTypeBacktick:          []string{"code"},
+		// tokenTypeAsteriskTriple:    []string{"strong", "em"},
+		tokenTypeUnderscore:       []string{"em"},
+		tokenTypeUnderscoreDouble: []string{"strong"},
+		tokenTypeBacktick:         []string{"code"},
+		tokenTypeLink:             []string{"a"},
 	}
 )
 
@@ -92,7 +99,36 @@ func (t tokenType) String() string {
 		return "SQU_BRK_OPN"
 	case tokenTypeSquareBracketClose:
 		return "SQU_BRK_CLS"
+	case tokenTypeLink:
+		return "LNK"
 	}
 
 	panic(ErrTokenTypeStringNotFound)
+}
+
+var (
+	tokenTypeClassNameCacheMap = make(map[tokenType]string)
+)
+
+func (t tokenType) ClassName() string {
+	value, found := tokenTypeClassNameCacheMap[t]
+	if found {
+		return value
+	}
+
+	var builder strings.Builder
+
+	for _, r := range t.String() {
+		if r == '_' {
+			builder.WriteByte('-')
+		} else {
+			builder.WriteRune(unicode.ToLower(r))
+		}
+	}
+
+	value = builder.String()
+
+	tokenTypeClassNameCacheMap[t] = value
+
+	return value
 }

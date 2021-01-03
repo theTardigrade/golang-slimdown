@@ -5,6 +5,7 @@ import (
 	"html"
 	"html/template"
 	"net/url"
+	"sort"
 	"strings"
 )
 
@@ -258,7 +259,7 @@ func compileGenerateHTMLToken(options *Options, t *token, tokenStack *tokenColle
 		tokenTypeDocumentBodyBound,
 		tokenTypeDocumentHeadBound,
 		tokenTypeDocumentHTMLBound:
-		err = compileGenerateHTMLTokenHandleTag(t, tokenStack)
+		err = compileGenerateHTMLTokenHandleTag(t, tokenStack, options)
 	case tokenTypeSquareBracketOpen:
 		if !options.EnableLinks {
 			compileGenerateHTMLTokenHandleBytes(t)
@@ -305,16 +306,13 @@ func compileGenerateHTMLToken(options *Options, t *token, tokenStack *tokenColle
 			break
 		}
 
-		var textBuff, linkBuff bytes.Buffer
+		var linkBuff bytes.Buffer
 
-		for _, t2 := range textTokens.Data {
-			textBuff.Write(t2.Bytes())
-		}
 		for _, t2 := range linkTokens.Data {
 			linkBuff.Write(t2.Bytes())
 		}
 
-		textBytes, linkString := textBuff.Bytes(), linkBuff.String()
+		linkString := linkBuff.String()
 
 		var linkURL *url.URL
 		linkURL, err = url.Parse(linkString)
@@ -328,16 +326,6 @@ func compileGenerateHTMLToken(options *Options, t *token, tokenStack *tokenColle
 			return
 		}
 
-		var buff bytes.Buffer
-
-		buff.WriteString(`<a href="`)
-		buff.WriteString(linkString)
-		buff.WriteString(`">`)
-		buff.Write(textBytes)
-		buff.WriteString(`</a>`)
-
-		compileGenerateHTMLTokenHandleBuffer(t, &buff)
-
 		allTokens := tokenCollectionNewEmpty()
 
 		allTokens.PushAsIs(textTokens.Data...)
@@ -345,8 +333,23 @@ func compileGenerateHTMLToken(options *Options, t *token, tokenStack *tokenColle
 		allTokens.PushAsIs(linkTokens.Data...)
 		allTokens.PushAsIs(finalToken)
 
-		for _, t2 := range allTokens.Data {
-			t2.Type = tokenTypeEmpty
+		textInputStartIndex := textTokens.Data[0].InputStartIndex
+		textInputEndIndex := textTokens.Data[len(textTokens.Data)-1].InputEndIndex
+
+		for i, t2 := range allTokens.Data {
+			switch i {
+			case 1:
+				t2.Attributes = map[string]string{"href": linkString}
+				fallthrough
+			case 3:
+				t2.Type = tokenTypeLink
+			case 2:
+				t2.Type = tokenTypeText
+				t2.InputStartIndex = textInputStartIndex
+				t2.InputEndIndex = textInputEndIndex
+			default:
+				t2.Type = tokenTypeEmpty
+			}
 		}
 	case tokenTypeBackslash,
 		tokenTypeParenthesisOpen,
@@ -393,10 +396,10 @@ func compileGenerateHTMLToken(options *Options, t *token, tokenStack *tokenColle
 			}
 		}
 
-		err = compileGenerateHTMLTokenHandleTag(t, tokenStack)
+		err = compileGenerateHTMLTokenHandleTag(t, tokenStack, options)
 	case tokenTypeUnderscoreTriple, tokenTypeAsteriskTriple:
 		if options.EnableStrongTags && options.EnableEmTags {
-			err = compileGenerateHTMLTokenHandleTag(t, tokenStack)
+			err = compileGenerateHTMLTokenHandleTag(t, tokenStack, options)
 			break
 		}
 
@@ -407,21 +410,25 @@ func compileGenerateHTMLToken(options *Options, t *token, tokenStack *tokenColle
 			break
 		}
 
-		err = compileGenerateHTMLTokenHandleTag(t, tokenStack)
+		err = compileGenerateHTMLTokenHandleTag(t, tokenStack, options)
 	case tokenTypeUnderscore, tokenTypeAsterisk:
 		if !options.EnableEmTags {
 			compileGenerateHTMLTokenHandleBytes(t)
 			break
 		}
 
-		err = compileGenerateHTMLTokenHandleTag(t, tokenStack)
+		err = compileGenerateHTMLTokenHandleTag(t, tokenStack, options)
 	case tokenTypeEqualsDouble:
 		if !options.EnableMarkTags {
 			compileGenerateHTMLTokenHandleBytes(t)
 			break
 		}
 
-		err = compileGenerateHTMLTokenHandleTag(t, tokenStack)
+		err = compileGenerateHTMLTokenHandleTag(t, tokenStack, options)
+	case tokenTypeLink:
+		// enable link
+
+		err = compileGenerateHTMLTokenHandleTag(t, tokenStack, options)
 	case tokenTypeDocumentDoctype:
 		t.HTML = []byte(`<!DOCTYPE html>`)
 	default:
@@ -431,15 +438,11 @@ func compileGenerateHTMLToken(options *Options, t *token, tokenStack *tokenColle
 	return
 }
 
-func compileGenerateHTMLTokenHandleBuffer(t *token, b *bytes.Buffer) {
-	t.HTML = b.Bytes()
-}
-
 func compileGenerateHTMLTokenHandleBytes(t *token) {
 	t.HTML = t.Bytes()
 }
 
-func compileGenerateHTMLTokenHandleTag(t *token, tokenStack *tokenCollection) (err error) {
+func compileGenerateHTMLTokenHandleTag(t *token, tokenStack *tokenCollection, options *Options) (err error) {
 	y := t.Type
 
 	if y != tokenTypeBacktick && tokenStack.ContainsType(tokenTypeBacktick) {
@@ -448,23 +451,77 @@ func compileGenerateHTMLTokenHandleTag(t *token, tokenStack *tokenCollection) (e
 	}
 
 	if t2 := tokenStack.Peek(); t2 != nil && t2.Type == y {
+		if t2.Attributes == nil {
+			t2.Attributes = make(map[string]string)
+		}
+		attributes := t2.Attributes
+
 		tags, foundTag := tokenTypeTagMap[y]
 		tagsLen := len(tags)
 		if !foundTag || tagsLen < 1 {
-			err = ErrCompileTagsForTokenNotFound
-			return
+			tags = []string{"span"}
+			tagsLen = 1
+
+			attributes["class"] = t2.Type.ClassName()
 		}
 
-		t.HTML, t2.HTML = []byte{}, []byte{}
+		attributesSliceLen := len(attributes)
+		var attributesSlice [][2]string
 
-		for i := 0; i < tagsLen; i++ {
-			t2.HTML = append(t2.HTML, []byte("<"+tags[i]+">")...)
-			t.HTML = append(t.HTML, []byte("</"+tags[tagsLen-i-1]+">")...)
+		if attributesSliceLen > 0 {
+			attributesKeys := make([]string, 0, attributesSliceLen)
+			for k, _ := range attributes {
+				if k != "" {
+					attributesKeys = append(attributesKeys, k)
+				} else {
+					attributesSliceLen--
+				}
+			}
+
+			if attributesSliceLen > 1 {
+				sort.Strings(attributesKeys)
+			}
+
+			attributesSlice = make([][2]string, attributesSliceLen)
+			for i, k := range attributesKeys {
+				attributesSlice[i] = [2]string{
+					k,
+					attributes[k],
+				}
+			}
+		}
+
+		{
+			var buff, buff2 bytes.Buffer
+
+			for i := 0; i < tagsLen; i++ {
+				buff2.WriteByte('<')
+				buff2.WriteString(tags[i])
+				if i < attributesSliceLen {
+					buff2.WriteByte(' ')
+					buff2.WriteString(attributesSlice[i][0])
+					buff2.WriteByte('=')
+					buff2.WriteByte('"')
+					buff2.WriteString(attributesSlice[i][1])
+					buff2.WriteByte('"')
+				}
+				buff2.WriteByte('>')
+
+				buff.WriteByte('<')
+				buff.WriteByte('/')
+				buff.WriteString(tags[tagsLen-i-1])
+				buff.WriteByte('>')
+			}
+
+			t2.HTML = buff2.Bytes()
+			t.HTML = buff.Bytes()
+		}
+
+		if options.CleanEmptyTags {
+			t.Collection.TagPairCleanData = append(t.Collection.TagPairCleanData, [2]*token{t2, t})
 		}
 
 		tokenStack.PopAsIs()
-
-		t.Collection.TagPairCleanData = append(t.Collection.TagPairCleanData, [2]*token{t2, t})
 	} else {
 		tokenStack.PushAsIs(t)
 	}
@@ -475,8 +532,8 @@ func compileGenerateHTMLTokenHandleTag(t *token, tokenStack *tokenCollection) (e
 func compileClean(tokens *tokenCollection) {
 	for _, pair := range tokens.TagPairCleanData {
 		startTagToken, endTagToken := pair[0], pair[1]
-
 		shouldClean := true
+
 		prevs, foundPrevs := endTagToken.PrevUntilMeetToken(startTagToken)
 		if foundPrevs {
 			for _, p := range prevs.Data {

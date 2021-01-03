@@ -1,12 +1,13 @@
 package slimdown
 
 type token struct {
-	Type            tokenType
-	InputStartIndex int
-	InputEndIndex   int
-	HTML            []byte
 	Prev, Next      *token
 	Collection      *tokenCollection
+	Attributes      map[string]string
+	HTML            []byte
+	InputStartIndex int
+	InputEndIndex   int
+	Type            tokenType
 }
 
 func (t *token) PrevNTypes(types []tokenType) (prevs *tokenCollection, found bool) {

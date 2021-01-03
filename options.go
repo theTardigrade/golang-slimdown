@@ -20,6 +20,7 @@ type Options struct {
 var (
 	DefaultOptions = Options{
 		AllowHTML:                 false,
+		CleanEmptyTags:            false,
 		DebugPrintTokens:          false,
 		EnableBackslashTransforms: false,
 		EnableCodeTags:            false,
