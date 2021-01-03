@@ -3,7 +3,10 @@ package slimdown
 import "errors"
 
 var (
-	ErrTokenAlreadyTwinned     = errors.New("token cannot have more than one twin")
-	ErrParseTokenStackOverflow = errors.New("token stack overflow")
-	ErrParseTokenTypeUnknown   = errors.New("token type unknown")
+	ErrCompileTokenStackOverflow          = errors.New("token stack overflow")
+	ErrCompileTokenTypeUnknown            = errors.New("token type unknown")
+	ErrCompileBackslashTransformUnknown   = errors.New("backslash transform unknown")
+	ErrCompileURLCannotContainDoubleQuote = errors.New("compiled URL cannot contain the double quote symbol")
+	ErrCompileTagsForTokenNotFound        = errors.New("cannot find matching tags for token")
+	ErrTokenTypeStringNotFound          = errors.New("token type string not found")
 )
