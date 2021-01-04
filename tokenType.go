@@ -27,28 +27,13 @@ const (
 	tokenTypeUnderscoreTriple
 	tokenTypeEqualsDouble
 	tokenTypeBacktick
+	tokenTypeExclamation
 	tokenTypeParenthesisOpen
 	tokenTypeParenthesisClose
 	tokenTypeSquareBracketOpen
 	tokenTypeSquareBracketClose
 	tokenTypeLink
-)
-
-var (
-	tokenTypeTagMap = map[tokenType][]string{
-		tokenTypeDocumentHTMLBound: []string{"html"},
-		tokenTypeDocumentHeadBound: []string{"head"},
-		tokenTypeDocumentBodyBound: []string{"body"},
-		tokenTypeParagraphBound:    []string{"p"},
-		tokenTypeEqualsDouble:      []string{"mark"},
-		tokenTypeAsterisk:          []string{"em"},
-		tokenTypeAsteriskDouble:    []string{"strong"},
-		// tokenTypeAsteriskTriple:    []string{"strong", "em"},
-		tokenTypeUnderscore:       []string{"em"},
-		tokenTypeUnderscoreDouble: []string{"strong"},
-		tokenTypeBacktick:         []string{"code"},
-		tokenTypeLink:             []string{"a"},
-	}
+	tokenTypeImage
 )
 
 func (t tokenType) String() string {
@@ -91,6 +76,8 @@ func (t tokenType) String() string {
 		return "EQU_DUB"
 	case tokenTypeBacktick:
 		return "BAK_TIK"
+	case tokenTypeExclamation:
+		return "EXL"
 	case tokenTypeParenthesisOpen:
 		return "PRN_OPN"
 	case tokenTypeParenthesisClose:
@@ -101,21 +88,14 @@ func (t tokenType) String() string {
 		return "SQU_BRK_CLS"
 	case tokenTypeLink:
 		return "LNK"
+	case tokenTypeImage:
+		return "IMG"
 	}
 
 	panic(ErrTokenTypeStringNotFound)
 }
 
-var (
-	tokenTypeClassNameCacheMap = make(map[tokenType]string)
-)
-
 func (t tokenType) ClassName() string {
-	value, found := tokenTypeClassNameCacheMap[t]
-	if found {
-		return value
-	}
-
 	var builder strings.Builder
 
 	for _, r := range t.String() {
@@ -126,9 +106,5 @@ func (t tokenType) ClassName() string {
 		}
 	}
 
-	value = builder.String()
-
-	tokenTypeClassNameCacheMap[t] = value
-
-	return value
+	return builder.String()
 }

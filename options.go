@@ -8,6 +8,7 @@ type Options struct {
 	EnableCodeTags            bool
 	EnableDocumentTags        bool
 	EnableEmTags              bool
+	EnableImages              bool
 	EnableLinks               bool
 	EnableMarkTags            bool
 	EnableParagraphTags       bool
@@ -26,6 +27,7 @@ var (
 		EnableCodeTags:            false,
 		EnableDocumentTags:        false,
 		EnableEmTags:              true,
+		EnableImages:              true,
 		EnableLinks:               false,
 		EnableParagraphTags:       true,
 		EnableStrongTags:          true,

@@ -10,6 +10,12 @@ type token struct {
 	Type            tokenType
 }
 
+func (t *token) SimpleCloneForClosingTag() *token {
+	return &token{
+		Type: t.Type,
+	}
+}
+
 func (t *token) PrevNTypes(types []tokenType) (prevs *tokenCollection, found bool) {
 	if t == nil {
 		return
