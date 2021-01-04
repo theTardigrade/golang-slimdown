@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"sort"
 	"strings"
+
+	"github.com/theTardigrade/golang-slimdown/internal/tokenization"
 )
 
 func CompileString(input string, options *Options) (output template.HTML, err error) {
@@ -14,7 +16,7 @@ func CompileString(input string, options *Options) (output template.HTML, err er
 }
 
 func Compile(input []byte, options *Options) (output template.HTML, err error) {
-	tokens := tokenCollectionNew(input)
+	tokens := tokenization.TokenCollectionNew(input)
 
 	if options == nil {
 		options = &Options{}
@@ -43,25 +45,25 @@ func Compile(input []byte, options *Options) (output template.HTML, err error) {
 	return
 }
 
-func compileTokenize(options *Options, tokens *tokenCollection) (err error) {
-	backslashTokens := tokenCollectionNew(tokens.Input)
+func compileTokenize(options *Options, tokens *tokenization.TokenCollection) (err error) {
+	backslashTokens := tokenization.TokenCollectionNew(tokens.Input)
 
 	if options.EnableDocumentTags {
-		tokens.PushNewEmpty(tokenTypeDocumentDoctype)
+		tokens.PushNewEmpty(tokenization.TokenTypeDocumentDoctype)
 
-		defer tokens.PushNewEmpty(tokenTypeDocumentHTMLBound)
-		tokens.PushNewEmpty(tokenTypeDocumentHTMLBound)
+		defer tokens.PushNewEmpty(tokenization.TokenTypeDocumentHTMLBound)
+		tokens.PushNewEmpty(tokenization.TokenTypeDocumentHTMLBound)
 
-		tokens.PushNewEmpty(tokenTypeDocumentHeadBound)
-		tokens.PushNewEmpty(tokenTypeDocumentHeadBound)
+		tokens.PushNewEmpty(tokenization.TokenTypeDocumentHeadBound)
+		tokens.PushNewEmpty(tokenization.TokenTypeDocumentHeadBound)
 
-		defer tokens.PushNewEmpty(tokenTypeDocumentBodyBound)
-		tokens.PushNewEmpty(tokenTypeDocumentBodyBound)
+		defer tokens.PushNewEmpty(tokenization.TokenTypeDocumentBodyBound)
+		tokens.PushNewEmpty(tokenization.TokenTypeDocumentBodyBound)
 	}
 
 	if options.EnableParagraphTags {
-		defer tokens.PushNewEmpty(tokenTypeParagraphBound)
-		tokens.PushNewEmpty(tokenTypeParagraphBound)
+		defer tokens.PushNewEmpty(tokenization.TokenTypeParagraphBound)
+		tokens.PushNewEmpty(tokenization.TokenTypeParagraphBound)
 	}
 
 	for i, b := range tokens.Input {
@@ -71,10 +73,10 @@ func compileTokenize(options *Options, tokens *tokenCollection) (err error) {
 
 			if t := tokens.Peek(); t != nil {
 				switch t.Type {
-				case tokenTypeAsteriskDouble:
-					t.Type = tokenTypeAsteriskTriple
-				case tokenTypeAsterisk:
-					t.Type = tokenTypeAsteriskDouble
+				case tokenization.TokenTypeAsteriskDouble:
+					t.Type = tokenization.TokenTypeAsteriskTriple
+				case tokenization.TokenTypeAsterisk:
+					t.Type = tokenization.TokenTypeAsteriskDouble
 				default:
 					match = false
 				}
@@ -85,87 +87,87 @@ func compileTokenize(options *Options, tokens *tokenCollection) (err error) {
 			}
 
 			if !match {
-				tokens.PushNewSingle(tokenTypeAsterisk, i)
+				tokens.PushNewSingle(tokenization.TokenTypeAsterisk, i)
 			}
 		case '_':
-			if t := tokens.Peek(); t != nil && t.Type == tokenTypeUnderscore {
-				t.Type = tokenTypeUnderscoreDouble
+			if t := tokens.Peek(); t != nil && t.Type == tokenization.TokenTypeUnderscore {
+				t.Type = tokenization.TokenTypeUnderscoreDouble
 				t.InputEndIndex++
 			} else {
-				tokens.PushNewSingle(tokenTypeUnderscore, i)
+				tokens.PushNewSingle(tokenization.TokenTypeUnderscore, i)
 			}
 		case '\\':
 			backslashTokens.PushAsIs(
-				tokens.PushNewSingle(tokenTypeBackslash, i),
+				tokens.PushNewSingle(tokenization.TokenTypeBackslash, i),
 			)
-			tokens.PushNewSingle(tokenTypeEmpty, i)
+			tokens.PushNewSingle(tokenization.TokenTypeEmpty, i)
 		case '=':
 			var handled bool
 
-			if t := tokens.Peek(); t != nil && t.Type == tokenTypeText {
+			if t := tokens.Peek(); t != nil && t.Type == tokenization.TokenTypeText {
 				if l := t.Len(); l == 1 {
 					if b := t.Bytes(); b[0] == '=' {
-						t.Type = tokenTypeEqualsDouble
+						t.Type = tokenization.TokenTypeEqualsDouble
 						handled = true
 					}
 				}
 			}
 
 			if !handled {
-				tokens.PushNewSingle(tokenTypeText, i)
+				tokens.PushNewSingle(tokenization.TokenTypeText, i)
 			}
 		case '`':
-			tokens.PushNewSingle(tokenTypeBacktick, i)
+			tokens.PushNewSingle(tokenization.TokenTypeBacktick, i)
 		case '!':
-			tokens.PushNewSingle(tokenTypeExclamation, i)
+			tokens.PushNewSingle(tokenization.TokenTypeExclamation, i)
 		case '\r':
-			tokens.PushNewSingle(tokenTypeCarriageReturn, i)
+			tokens.PushNewSingle(tokenization.TokenTypeCarriageReturn, i)
 		case '\n':
-			tokens.PushNewSingle(tokenTypeParagraphBound, i)
-			tokens.PushNewSingle(tokenTypeParagraphBound, i)
+			tokens.PushNewSingle(tokenization.TokenTypeParagraphBound, i)
+			tokens.PushNewSingle(tokenization.TokenTypeParagraphBound, i)
 		case '\t':
 			if tts := options.TabToSpaces; tts > 0 {
 				for j := 0; j < tts; j++ {
-					tokens.PushNewSingle(tokenTypeSpace, i)
+					tokens.PushNewSingle(tokenization.TokenTypeSpace, i)
 				}
 			} else {
-				tokens.PushNewSingle(tokenTypeTab, i)
+				tokens.PushNewSingle(tokenization.TokenTypeTab, i)
 			}
 		case '(':
-			tokens.PushNewSingle(tokenTypeParenthesisOpen, i)
+			tokens.PushNewSingle(tokenization.TokenTypeParenthesisOpen, i)
 		case ')':
-			tokens.PushNewSingle(tokenTypeParenthesisClose, i)
+			tokens.PushNewSingle(tokenization.TokenTypeParenthesisClose, i)
 		case '[':
-			tokens.PushNewSingle(tokenTypeSquareBracketOpen, i)
+			tokens.PushNewSingle(tokenization.TokenTypeSquareBracketOpen, i)
 		case ']':
-			tokens.PushNewSingle(tokenTypeSquareBracketClose, i)
+			tokens.PushNewSingle(tokenization.TokenTypeSquareBracketClose, i)
 		case ' ':
-			t := tokens.PushNewSingle(tokenTypeSpace, i)
+			t := tokens.PushNewSingle(tokenization.TokenTypeSpace, i)
 
 			if stt := options.SpacesToTab; stt > 0 {
 				if stt == 1 {
-					t.Type = tokenTypeTab
+					t.Type = tokenization.TokenTypeTab
 				} else {
-					potentialTypes := make([]tokenType, stt-1)
+					potentialTypes := make([]tokenization.TokenType, stt-1)
 
 					for i := range potentialTypes {
-						potentialTypes[i] = tokenTypeSpace
+						potentialTypes[i] = tokenization.TokenTypeSpace
 					}
 
 					if prevs, foundPrevs := t.PrevNTypes(potentialTypes); foundPrevs {
-						t.Type = tokenTypeTab
+						t.Type = tokenization.TokenTypeTab
 
 						for _, p := range prevs.Data {
-							p.Type = tokenTypeEmpty
+							p.Type = tokenization.TokenTypeEmpty
 						}
 					}
 				}
 			}
 		default:
-			if t := tokens.Peek(); t != nil && t.Type == tokenTypeText {
+			if t := tokens.Peek(); t != nil && t.Type == tokenization.TokenTypeText {
 				t.InputEndIndex++
 			} else {
-				tokens.PushNewSingle(tokenTypeText, i)
+				tokens.PushNewSingle(tokenization.TokenTypeText, i)
 			}
 		}
 	}
@@ -179,21 +181,21 @@ func compileTokenize(options *Options, tokens *tokenCollection) (err error) {
 	return
 }
 
-func compileTokenizeBackslashTransforms(tokens *tokenCollection) (err error) {
+func compileTokenizeBackslashTransforms(tokens *tokenization.TokenCollection) (err error) {
 	for _, t := range tokens.Data {
 		var isHandled bool
 
-		if nextEmpty := t.Next; nextEmpty != nil && nextEmpty.Type == tokenTypeEmpty {
-			if nextNextText := nextEmpty.Next; nextNextText != nil && nextNextText.Type == tokenTypeText {
+		if nextEmpty := t.Next; nextEmpty != nil && nextEmpty.Type == tokenization.TokenTypeEmpty {
+			if nextNextText := nextEmpty.Next; nextNextText != nil && nextNextText.Type == tokenization.TokenTypeText {
 				if nextNextText.Len() > 0 {
 					switch isHandled = true; tokens.Input[nextNextText.InputStartIndex] {
 					case 'n':
-						t.Type = tokenTypeParagraphBound
-						t.Next.Type = tokenTypeParagraphBound
+						t.Type = tokenization.TokenTypeParagraphBound
+						t.Next.Type = tokenization.TokenTypeParagraphBound
 					case 'r':
-						t.Type = tokenTypeCarriageReturn
+						t.Type = tokenization.TokenTypeCarriageReturn
 					case 't':
-						t.Type = tokenTypeTab
+						t.Type = tokenization.TokenTypeTab
 					case '\\':
 						break
 					default:
@@ -216,8 +218,8 @@ func compileTokenizeBackslashTransforms(tokens *tokenCollection) (err error) {
 	return
 }
 
-func compileGenerateHTML(options *Options, tokens *tokenCollection) (err error) {
-	tokenStack := tokenCollectionNewEmpty()
+func compileGenerateHTML(options *Options, tokens *tokenization.TokenCollection) (err error) {
+	tokenStack := tokenization.TokenCollectionNewEmpty()
 
 	for _, t := range tokens.Data {
 		if err = compileGenerateHTMLToken(options, t, tokenStack); err != nil {
@@ -228,7 +230,7 @@ func compileGenerateHTML(options *Options, tokens *tokenCollection) (err error) 
 	if tokenStack.Len() > 0 {
 		for {
 			if t := tokenStack.PopAsIs(); t != nil {
-				t.Type = tokenTypeText
+				t.Type = tokenization.TokenTypeText
 				compileGenerateHTMLToken(options, t, tokenStack)
 			} else {
 				break
@@ -239,11 +241,11 @@ func compileGenerateHTML(options *Options, tokens *tokenCollection) (err error) 
 	return
 }
 
-func compileGenerateHTMLToken(options *Options, t *token, tokenStack *tokenCollection) (err error) {
+func compileGenerateHTMLToken(options *Options, t *tokenization.Token, tokenStack *tokenization.TokenCollection) (err error) {
 	switch y := t.Type; y {
-	case tokenTypeEmpty:
+	case tokenization.TokenTypeEmpty:
 		break
-	case tokenTypeSpace:
+	case tokenization.TokenTypeSpace:
 		t.HTML = []byte{' '}
 
 		if mcs := options.MaxConsecutiveSpaces; mcs > 0 {
@@ -253,38 +255,38 @@ func compileGenerateHTMLToken(options *Options, t *token, tokenStack *tokenColle
 					if i+1 < mcs {
 						continue
 					}
-					t2.Type = tokenTypeEmpty
+					t2.Type = tokenization.TokenTypeEmpty
 				}
 			}
 		}
-	case tokenTypeParagraphBound,
-		tokenTypeDocumentBodyBound,
-		tokenTypeDocumentHeadBound,
-		tokenTypeDocumentHTMLBound:
+	case tokenization.TokenTypeParagraphBound,
+		tokenization.TokenTypeDocumentBodyBound,
+		tokenization.TokenTypeDocumentHeadBound,
+		tokenization.TokenTypeDocumentHTMLBound:
 		err = compileGenerateHTMLTokenHandleTag(t, tokenStack, options)
-	case tokenTypeExclamation:
+	case tokenization.TokenTypeExclamation:
 		if !options.EnableImages {
 			compileGenerateHTMLTokenHandleBytes(t)
 			break
 		}
 
 		squareBracketOpenToken := t.Next
-		if squareBracketOpenToken == nil || squareBracketOpenToken.Type != tokenTypeSquareBracketOpen {
+		if squareBracketOpenToken == nil || squareBracketOpenToken.Type != tokenization.TokenTypeSquareBracketOpen {
 			compileGenerateHTMLTokenHandleBytes(t)
 			break
 		}
 
 		textTokens, foundTextTokens := squareBracketOpenToken.NextUntilEndOfPotentialTypes(
-			tokenTypeListImageSegmentText...,
+			tokenization.TokenTypeListImageSegmentText...,
 		)
 		if !foundTextTokens {
 			compileGenerateHTMLTokenHandleBytes(t)
 			break
 		}
 
-		midTokens, foundMidTokens := textTokens.Get(-1).NextNTypes([]tokenType{
-			tokenTypeSquareBracketClose,
-			tokenTypeParenthesisOpen,
+		midTokens, foundMidTokens := textTokens.Get(-1).NextNTypes([]tokenization.TokenType{
+			tokenization.TokenTypeSquareBracketClose,
+			tokenization.TokenTypeParenthesisOpen,
 		})
 		if !foundMidTokens {
 			compileGenerateHTMLTokenHandleBytes(t)
@@ -292,7 +294,7 @@ func compileGenerateHTMLToken(options *Options, t *token, tokenStack *tokenColle
 		}
 
 		linkTokens, foundLinkTokens := midTokens.Get(-1).NextUntilEndOfPotentialTypes(
-			tokenTypeListImageSegmentLink...,
+			tokenization.TokenTypeListImageSegmentLink...,
 		)
 		if !foundLinkTokens {
 			compileGenerateHTMLTokenHandleBytes(t)
@@ -300,7 +302,7 @@ func compileGenerateHTMLToken(options *Options, t *token, tokenStack *tokenColle
 		}
 
 		finalToken := linkTokens.Get(-1).Next
-		if finalToken == nil || finalToken.Type != tokenTypeParenthesisClose {
+		if finalToken == nil || finalToken.Type != tokenization.TokenTypeParenthesisClose {
 			compileGenerateHTMLTokenHandleBytes(t)
 			break
 		}
@@ -329,46 +331,46 @@ func compileGenerateHTMLToken(options *Options, t *token, tokenStack *tokenColle
 			return
 		}
 
-		t.Type = tokenTypeImage
+		t.Type = tokenization.TokenTypeImage
 		t.Attributes = map[string]string{
 			"alt": textString,
 			"src": linkString,
 		}
 
-		squareBracketOpenToken.Type = tokenTypeImage
+		squareBracketOpenToken.Type = tokenization.TokenTypeImage
 
 		for _, t2 := range textTokens.Data {
-			t2.Type = tokenTypeEmpty
+			t2.Type = tokenization.TokenTypeEmpty
 		}
 		for _, t2 := range midTokens.Data {
-			t2.Type = tokenTypeEmpty
+			t2.Type = tokenization.TokenTypeEmpty
 		}
 		for _, t2 := range linkTokens.Data {
-			t2.Type = tokenTypeEmpty
+			t2.Type = tokenization.TokenTypeEmpty
 		}
 
-		finalToken.Type = tokenTypeEmpty
+		finalToken.Type = tokenization.TokenTypeEmpty
 
 		if err = compileGenerateHTMLToken(options, t, tokenStack); err != nil {
 			return
 		}
-	case tokenTypeSquareBracketOpen:
+	case tokenization.TokenTypeSquareBracketOpen:
 		if !options.EnableLinks {
 			compileGenerateHTMLTokenHandleBytes(t)
 			break
 		}
 
 		textTokens, foundTextTokens := t.NextUntilEndOfPotentialTypes(
-			tokenTypeListLinkSegmentText...,
+			tokenization.TokenTypeListLinkSegmentText...,
 		)
 		if !foundTextTokens {
 			compileGenerateHTMLTokenHandleBytes(t)
 			break
 		}
 
-		midTokens, foundMidTokens := textTokens.Get(-1).NextNTypes([]tokenType{
-			tokenTypeSquareBracketClose,
-			tokenTypeParenthesisOpen,
+		midTokens, foundMidTokens := textTokens.Get(-1).NextNTypes([]tokenization.TokenType{
+			tokenization.TokenTypeSquareBracketClose,
+			tokenization.TokenTypeParenthesisOpen,
 		})
 		if !foundMidTokens {
 			compileGenerateHTMLTokenHandleBytes(t)
@@ -376,7 +378,7 @@ func compileGenerateHTMLToken(options *Options, t *token, tokenStack *tokenColle
 		}
 
 		linkTokens, foundLinkTokens := midTokens.Get(-1).NextUntilEndOfPotentialTypes(
-			tokenTypeListLinkSegmentLink...,
+			tokenization.TokenTypeListLinkSegmentLink...,
 		)
 		if !foundLinkTokens {
 			compileGenerateHTMLTokenHandleBytes(t)
@@ -384,7 +386,7 @@ func compileGenerateHTMLToken(options *Options, t *token, tokenStack *tokenColle
 		}
 
 		finalToken := linkTokens.Get(-1).Next
-		if finalToken == nil || finalToken.Type != tokenTypeParenthesisClose {
+		if finalToken == nil || finalToken.Type != tokenization.TokenTypeParenthesisClose {
 			compileGenerateHTMLTokenHandleBytes(t)
 			break
 		}
@@ -409,50 +411,50 @@ func compileGenerateHTMLToken(options *Options, t *token, tokenStack *tokenColle
 			return
 		}
 
-		t.Type = tokenTypeLink
+		t.Type = tokenization.TokenTypeLink
 		t.Attributes = map[string]string{"href": linkString}
 
-		midTokens.Data[0].Type = tokenTypeLink
-		midTokens.Data[1].Type = tokenTypeEmpty
+		midTokens.Data[0].Type = tokenization.TokenTypeLink
+		midTokens.Data[1].Type = tokenization.TokenTypeEmpty
 
 		for _, t2 := range linkTokens.Data {
-			t2.Type = tokenTypeEmpty
+			t2.Type = tokenization.TokenTypeEmpty
 		}
 
-		finalToken.Type = tokenTypeEmpty
+		finalToken.Type = tokenization.TokenTypeEmpty
 
 		if err = compileGenerateHTMLToken(options, t, tokenStack); err != nil {
 			return
 		}
-	case tokenTypeBackslash,
-		tokenTypeParenthesisOpen,
-		tokenTypeParenthesisClose,
-		tokenTypeSquareBracketClose:
+	case tokenization.TokenTypeBackslash,
+		tokenization.TokenTypeParenthesisOpen,
+		tokenization.TokenTypeParenthesisClose,
+		tokenization.TokenTypeSquareBracketClose:
 		compileGenerateHTMLTokenHandleBytes(t)
-	case tokenTypeText:
+	case tokenization.TokenTypeText:
 		compileGenerateHTMLTokenHandleBytes(t)
 
 		if !options.AllowHTML {
 			t.HTML = []byte(html.EscapeString(string(t.HTML)))
 		}
-	case tokenTypeTab:
+	case tokenization.TokenTypeTab:
 		t.HTML = []byte{'\t'}
-	case tokenTypeCarriageReturn:
+	case tokenization.TokenTypeCarriageReturn:
 		t.HTML = []byte{}
 
-		if _, foundNewline := t.NextUntilEndOfPotentialTypes(tokenTypeParagraphBound); !foundNewline {
+		if _, foundNewline := t.NextUntilEndOfPotentialTypes(tokenization.TokenTypeParagraphBound); !foundNewline {
 			prevs, foundPrevs := t.PrevUntilStartOfPotentialTypes(
-				tokenTypeParagraphBound,
+				tokenization.TokenTypeParagraphBound,
 			)
 			if foundPrevs {
 				for _, t2 := range prevs.Data {
-					if t2.Type == tokenTypeText {
-						t2.Type = tokenTypeEmpty
+					if t2.Type == tokenization.TokenTypeText {
+						t2.Type = tokenization.TokenTypeEmpty
 					}
 				}
 			}
 		}
-	case tokenTypeBacktick:
+	case tokenization.TokenTypeBacktick:
 		if !options.EnableCodeTags {
 			compileGenerateHTMLTokenHandleBytes(t)
 			break
@@ -470,47 +472,47 @@ func compileGenerateHTMLToken(options *Options, t *token, tokenStack *tokenColle
 		}
 
 		err = compileGenerateHTMLTokenHandleTag(t, tokenStack, options)
-	case tokenTypeUnderscoreTriple, tokenTypeAsteriskTriple:
+	case tokenization.TokenTypeUnderscoreTriple, tokenization.TokenTypeAsteriskTriple:
 		if options.EnableStrongTags && options.EnableEmTags {
 			err = compileGenerateHTMLTokenHandleTag(t, tokenStack, options)
 			break
 		}
 
 		fallthrough
-	case tokenTypeUnderscoreDouble, tokenTypeAsteriskDouble:
+	case tokenization.TokenTypeUnderscoreDouble, tokenization.TokenTypeAsteriskDouble:
 		if !options.EnableStrongTags {
 			compileGenerateHTMLTokenHandleBytes(t)
 			break
 		}
 
 		err = compileGenerateHTMLTokenHandleTag(t, tokenStack, options)
-	case tokenTypeUnderscore, tokenTypeAsterisk:
+	case tokenization.TokenTypeUnderscore, tokenization.TokenTypeAsterisk:
 		if !options.EnableEmTags {
 			compileGenerateHTMLTokenHandleBytes(t)
 			break
 		}
 
 		err = compileGenerateHTMLTokenHandleTag(t, tokenStack, options)
-	case tokenTypeEqualsDouble:
+	case tokenization.TokenTypeEqualsDouble:
 		if !options.EnableMarkTags {
 			compileGenerateHTMLTokenHandleBytes(t)
 			break
 		}
 
 		err = compileGenerateHTMLTokenHandleTag(t, tokenStack, options)
-	case tokenTypeLink:
+	case tokenization.TokenTypeLink:
 		if !options.EnableLinks {
 			return
 		}
 
 		err = compileGenerateHTMLTokenHandleTag(t, tokenStack, options)
-	case tokenTypeImage:
+	case tokenization.TokenTypeImage:
 		if !options.EnableImages {
 			return
 		}
 
 		err = compileGenerateHTMLTokenHandleTag(t, tokenStack, options)
-	case tokenTypeDocumentDoctype:
+	case tokenization.TokenTypeDocumentDoctype:
 		t.Attributes = map[string]string{
 			"html": "",
 		}
@@ -523,11 +525,11 @@ func compileGenerateHTMLToken(options *Options, t *token, tokenStack *tokenColle
 	return
 }
 
-func compileGenerateHTMLTokenHandleBytes(t *token) {
+func compileGenerateHTMLTokenHandleBytes(t *tokenization.Token) {
 	t.HTML = t.Bytes()
 }
 
-func compileGenerateHTMLTokenHandleTagFromSingleToken(t *token, tokenStack *tokenCollection, options *Options) (err error) {
+func compileGenerateHTMLTokenHandleTagFromSingleToken(t *tokenization.Token, tokenStack *tokenization.TokenCollection, options *Options) (err error) {
 	if err = compileGenerateHTMLTokenHandleTag(t, tokenStack, options); err != nil {
 		return
 	}
@@ -537,10 +539,10 @@ func compileGenerateHTMLTokenHandleTagFromSingleToken(t *token, tokenStack *toke
 	return
 }
 
-func compileGenerateHTMLTokenHandleTag(t *token, tokenStack *tokenCollection, options *Options) (err error) {
+func compileGenerateHTMLTokenHandleTag(t *tokenization.Token, tokenStack *tokenization.TokenCollection, options *Options) (err error) {
 	y := t.Type
 
-	if y != tokenTypeBacktick && tokenStack.ContainsType(tokenTypeBacktick) {
+	if y != tokenization.TokenTypeBacktick && tokenStack.ContainsType(tokenization.TokenTypeBacktick) {
 		compileGenerateHTMLTokenHandleBytes(t)
 		return
 	}
@@ -551,7 +553,7 @@ func compileGenerateHTMLTokenHandleTag(t *token, tokenStack *tokenCollection, op
 		}
 		attributes := t2.Attributes
 
-		data, foundData := tokenTypeData[y]
+		data, foundData := tokenization.TokenTypeData[y]
 		tags := data.Tags
 		tagsLen := len(data.Tags)
 		if !foundData || tagsLen < 1 {
@@ -618,7 +620,7 @@ func compileGenerateHTMLTokenHandleTag(t *token, tokenStack *tokenCollection, op
 		}
 
 		if options.CleanEmptyTags {
-			t.Collection.TagPairCleanData = append(t.Collection.TagPairCleanData, [2]*token{t2, t})
+			t.Collection.TagPairCleanData = append(t.Collection.TagPairCleanData, [2]*tokenization.Token{t2, t})
 		}
 
 		tokenStack.PopAsIs()
@@ -629,7 +631,7 @@ func compileGenerateHTMLTokenHandleTag(t *token, tokenStack *tokenCollection, op
 	return
 }
 
-func compileClean(tokens *tokenCollection) {
+func compileClean(tokens *tokenization.TokenCollection) {
 	for _, pair := range tokens.TagPairCleanData {
 		startTagToken, endTagToken := pair[0], pair[1]
 		shouldClean := true
@@ -638,7 +640,7 @@ func compileClean(tokens *tokenCollection) {
 		if foundPrevs {
 			for _, p := range prevs.Data {
 				switch p.Type {
-				case tokenTypeText:
+				case tokenization.TokenTypeText:
 					if p.Len() > 0 {
 						shouldClean = false
 					}
@@ -653,11 +655,11 @@ func compileClean(tokens *tokenCollection) {
 		}
 
 		if shouldClean {
-			startTagToken.Type = tokenTypeEmpty
-			endTagToken.Type = tokenTypeEmpty
+			startTagToken.Type = tokenization.TokenTypeEmpty
+			endTagToken.Type = tokenization.TokenTypeEmpty
 
 			for _, p := range prevs.Data {
-				p.Type = tokenTypeEmpty
+				p.Type = tokenization.TokenTypeEmpty
 			}
 		}
 	}

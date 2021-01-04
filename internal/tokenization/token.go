@@ -1,27 +1,27 @@
-package slimdown
+package tokenization
 
-type token struct {
-	Prev, Next      *token
-	Collection      *tokenCollection
+type Token struct {
+	Prev, Next      *Token
+	Collection      *TokenCollection
 	Attributes      map[string]string
 	HTML            []byte
 	InputStartIndex int
 	InputEndIndex   int
-	Type            tokenType
+	Type            TokenType
 }
 
-func (t *token) SimpleCloneForClosingTag() *token {
-	return &token{
+func (t *Token) SimpleCloneForClosingTag() *Token {
+	return &Token{
 		Type: t.Type,
 	}
 }
 
-func (t *token) PrevNTypes(types []tokenType) (prevs *tokenCollection, found bool) {
+func (t *Token) PrevNTypes(types []TokenType) (prevs *TokenCollection, found bool) {
 	if t == nil {
 		return
 	}
 
-	prevs = tokenCollectionNewEmpty()
+	prevs = TokenCollectionNewEmpty()
 	t2 := t
 	l := len(types)
 	var i, j int
@@ -35,7 +35,7 @@ func (t *token) PrevNTypes(types []tokenType) (prevs *tokenCollection, found boo
 			return
 		}
 
-		if t2.Type == tokenTypeEmpty {
+		if t2.Type == TokenTypeEmpty {
 			j++
 			continue
 		}
@@ -52,12 +52,12 @@ func (t *token) PrevNTypes(types []tokenType) (prevs *tokenCollection, found boo
 	return
 }
 
-func (t *token) NextNTypes(types []tokenType) (nexts *tokenCollection, found bool) {
+func (t *Token) NextNTypes(types []TokenType) (nexts *TokenCollection, found bool) {
 	if t == nil {
 		return
 	}
 
-	nexts = tokenCollectionNewEmpty()
+	nexts = TokenCollectionNewEmpty()
 	t2 := t
 	l := len(types)
 	var i, j int
@@ -71,7 +71,7 @@ func (t *token) NextNTypes(types []tokenType) (nexts *tokenCollection, found boo
 			return
 		}
 
-		if t2.Type == tokenTypeEmpty {
+		if t2.Type == TokenTypeEmpty {
 			j++
 			continue
 		}
@@ -88,8 +88,8 @@ func (t *token) NextNTypes(types []tokenType) (nexts *tokenCollection, found boo
 	return
 }
 
-func (t *token) PrevUntilMeetToken(stopToken *token) (prevs *tokenCollection, found bool) {
-	prevs = tokenCollectionNewEmpty()
+func (t *Token) PrevUntilMeetToken(stopToken *Token) (prevs *TokenCollection, found bool) {
+	prevs = TokenCollectionNewEmpty()
 	t2 := t
 
 	for {
@@ -97,7 +97,7 @@ func (t *token) PrevUntilMeetToken(stopToken *token) (prevs *tokenCollection, fo
 			break
 		}
 
-		if t2.Type != tokenTypeEmpty {
+		if t2.Type != TokenTypeEmpty {
 			prevs.PushAsIs(t2)
 		}
 	}
@@ -109,8 +109,8 @@ func (t *token) PrevUntilMeetToken(stopToken *token) (prevs *tokenCollection, fo
 	return
 }
 
-func (t *token) PrevUntilStartOfPotentialTypes(possibleTypes ...tokenType) (prevs *tokenCollection, found bool) {
-	prevs = tokenCollectionNewEmpty()
+func (t *Token) PrevUntilStartOfPotentialTypes(possibleTypes ...TokenType) (prevs *TokenCollection, found bool) {
+	prevs = TokenCollectionNewEmpty()
 	t2 := t
 
 	for {
@@ -118,7 +118,7 @@ func (t *token) PrevUntilStartOfPotentialTypes(possibleTypes ...tokenType) (prev
 			break
 		}
 
-		if t2.Type == tokenTypeEmpty {
+		if t2.Type == TokenTypeEmpty {
 			continue
 		}
 
@@ -145,8 +145,8 @@ func (t *token) PrevUntilStartOfPotentialTypes(possibleTypes ...tokenType) (prev
 	return
 }
 
-func (t *token) PrevUntilEndOfPotentialTypes(possibleTypes ...tokenType) (prevs *tokenCollection, found bool) {
-	prevs = tokenCollectionNewEmpty()
+func (t *Token) PrevUntilEndOfPotentialTypes(possibleTypes ...TokenType) (prevs *TokenCollection, found bool) {
+	prevs = TokenCollectionNewEmpty()
 	t2 := t
 
 	for {
@@ -154,7 +154,7 @@ func (t *token) PrevUntilEndOfPotentialTypes(possibleTypes ...tokenType) (prevs 
 			break
 		}
 
-		if t2.Type == tokenTypeEmpty {
+		if t2.Type == TokenTypeEmpty {
 			continue
 		}
 
@@ -181,8 +181,8 @@ func (t *token) PrevUntilEndOfPotentialTypes(possibleTypes ...tokenType) (prevs 
 	return
 }
 
-func (t *token) NextUntilStartOfPotentialTypes(possibleTypes ...tokenType) (nexts *tokenCollection, found bool) {
-	nexts = tokenCollectionNewEmpty()
+func (t *Token) NextUntilStartOfPotentialTypes(possibleTypes ...TokenType) (nexts *TokenCollection, found bool) {
+	nexts = TokenCollectionNewEmpty()
 	t2 := t
 
 	for {
@@ -190,7 +190,7 @@ func (t *token) NextUntilStartOfPotentialTypes(possibleTypes ...tokenType) (next
 			break
 		}
 
-		if t2.Type == tokenTypeEmpty {
+		if t2.Type == TokenTypeEmpty {
 			continue
 		}
 
@@ -217,8 +217,8 @@ func (t *token) NextUntilStartOfPotentialTypes(possibleTypes ...tokenType) (next
 	return
 }
 
-func (t *token) NextUntilEndOfPotentialTypes(possibleTypes ...tokenType) (nexts *tokenCollection, found bool) {
-	nexts = tokenCollectionNewEmpty()
+func (t *Token) NextUntilEndOfPotentialTypes(possibleTypes ...TokenType) (nexts *TokenCollection, found bool) {
+	nexts = TokenCollectionNewEmpty()
 	t2 := t
 
 	for {
@@ -226,7 +226,7 @@ func (t *token) NextUntilEndOfPotentialTypes(possibleTypes ...tokenType) (nexts 
 			break
 		}
 
-		if t2.Type == tokenTypeEmpty {
+		if t2.Type == TokenTypeEmpty {
 			continue
 		}
 
@@ -253,7 +253,7 @@ func (t *token) NextUntilEndOfPotentialTypes(possibleTypes ...tokenType) (nexts 
 	return
 }
 
-func (t *token) Len() int {
+func (t *Token) Len() int {
 	if l := len(t.HTML); l > 0 {
 		return l
 	}
@@ -267,14 +267,14 @@ func (t *token) Len() int {
 	return e - s
 }
 
-func (t *token) Bytes() []byte {
-	if t.Type == tokenTypeEmpty || t.Collection == nil || t.Len() <= 0 {
+func (t *Token) Bytes() []byte {
+	if t.Type == TokenTypeEmpty || t.Collection == nil || t.Len() <= 0 {
 		return []byte{}
 	}
 
 	return t.Collection.Input[t.InputStartIndex:t.InputEndIndex]
 }
 
-func (t *token) String() string {
+func (t *Token) String() string {
 	return string(t.Bytes())
 }

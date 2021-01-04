@@ -1,36 +1,36 @@
-package slimdown
+package tokenization
 
 import (
 	"html/template"
 	"strings"
 )
 
-type tokenCollection struct {
-	Data             []*token
-	TagPairCleanData [][2]*token
+type TokenCollection struct {
+	Data             []*Token
+	TagPairCleanData [][2]*Token
 	Input            []byte
 }
 
-func tokenCollectionNewEmpty() *tokenCollection {
-	return &tokenCollection{}
+func TokenCollectionNewEmpty() *TokenCollection {
+	return &TokenCollection{}
 }
 
-func tokenCollectionNew(input []byte) *tokenCollection {
-	return &tokenCollection{
+func TokenCollectionNew(input []byte) *TokenCollection {
+	return &TokenCollection{
 		Input: input,
 	}
 }
 
-func (c *tokenCollection) PushNewEmpty(y tokenType) *token {
+func (c *TokenCollection) PushNewEmpty(y TokenType) *Token {
 	return c.PushNew(y, 0, 0)
 }
 
-func (c *tokenCollection) PushNewSingle(y tokenType, InputStartIndex int) *token {
+func (c *TokenCollection) PushNewSingle(y TokenType, InputStartIndex int) *Token {
 	return c.PushNew(y, InputStartIndex, InputStartIndex+1)
 }
 
-func (c *tokenCollection) PushNew(y tokenType, InputStartIndex int, InputEndIndex int) *token {
-	t := &token{
+func (c *TokenCollection) PushNew(y TokenType, InputStartIndex int, InputEndIndex int) *Token {
+	t := &Token{
 		Type:            y,
 		InputStartIndex: InputStartIndex,
 		InputEndIndex:   InputEndIndex,
@@ -42,7 +42,7 @@ func (c *tokenCollection) PushNew(y tokenType, InputStartIndex int, InputEndInde
 	return t
 }
 
-func (c *tokenCollection) Push(tokens ...*token) {
+func (c *TokenCollection) Push(tokens ...*Token) {
 	for _, t := range tokens {
 		if t == nil {
 			return
@@ -64,7 +64,7 @@ func (c *tokenCollection) Push(tokens ...*token) {
 	return
 }
 
-func (c *tokenCollection) PushAsIs(tokens ...*token) {
+func (c *TokenCollection) PushAsIs(tokens ...*Token) {
 	for _, t := range tokens {
 		if t == nil {
 			return
@@ -76,7 +76,7 @@ func (c *tokenCollection) PushAsIs(tokens ...*token) {
 	return
 }
 
-func (c *tokenCollection) Peek() *token {
+func (c *TokenCollection) Peek() *Token {
 	if l := c.Len(); l > 0 {
 		return c.Data[l-1]
 	}
@@ -84,7 +84,7 @@ func (c *tokenCollection) Peek() *token {
 	return nil
 }
 
-func (c *tokenCollection) Pop() *token {
+func (c *TokenCollection) Pop() *Token {
 	if i := c.Len() - 1; i >= 0 {
 		t := c.Data[i]
 
@@ -103,7 +103,7 @@ func (c *tokenCollection) Pop() *token {
 	return nil
 }
 
-func (c *tokenCollection) PopAsIs() *token {
+func (c *TokenCollection) PopAsIs() *Token {
 	if i := c.Len() - 1; i >= 0 {
 		t := c.Data[i]
 
@@ -115,7 +115,7 @@ func (c *tokenCollection) PopAsIs() *token {
 	return nil
 }
 
-func (c *tokenCollection) Swap(index1, index2 int) (success bool) {
+func (c *TokenCollection) Swap(index1, index2 int) (success bool) {
 	if index1 < 0 || index2 < 0 {
 		return
 	}
@@ -135,7 +135,7 @@ func (c *tokenCollection) Swap(index1, index2 int) (success bool) {
 	return
 }
 
-func (c *tokenCollection) ContainsType(y tokenType) bool {
+func (c *TokenCollection) ContainsType(y TokenType) bool {
 	for t := c.Peek(); t != nil; t = t.Prev {
 		if t.Type == y {
 			return true
@@ -145,7 +145,7 @@ func (c *tokenCollection) ContainsType(y tokenType) bool {
 	return false
 }
 
-func (c *tokenCollection) Get(index int) *token {
+func (c *TokenCollection) Get(index int) *Token {
 	l := c.Len()
 
 	if index < 0 {
@@ -159,11 +159,11 @@ func (c *tokenCollection) Get(index int) *token {
 	return nil
 }
 
-func (c *tokenCollection) Len() int {
+func (c *TokenCollection) Len() int {
 	return len(c.Data)
 }
 
-func (c *tokenCollection) String() string {
+func (c *TokenCollection) String() string {
 	var builder strings.Builder
 
 	for _, t := range c.Data {
@@ -175,11 +175,11 @@ func (c *tokenCollection) String() string {
 	return builder.String()
 }
 
-func (c *tokenCollection) HTML() template.HTML {
+func (c *TokenCollection) HTML() template.HTML {
 	var builder strings.Builder
 
 	for _, t := range c.Data {
-		if t.Type != tokenTypeEmpty {
+		if t.Type != TokenTypeEmpty {
 			if h := t.HTML; len(h) > 0 {
 				builder.Write(h)
 			}

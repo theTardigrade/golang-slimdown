@@ -3,9 +3,11 @@ package slimdown
 import (
 	"fmt"
 	"strings"
+
+	"github.com/theTardigrade/golang-slimdown/internal/tokenization"
 )
 
-func debugPrintTokens(tokens *tokenCollection) {
+func debugPrintTokens(tokens *tokenization.TokenCollection) {
 	var builder strings.Builder
 
 	for i, t := range tokens.Data {
