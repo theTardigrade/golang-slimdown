@@ -150,8 +150,8 @@ func compileTokenize(options *Options, tokens *tokenization.TokenCollection) (er
 				} else {
 					potentialTypes := make([]tokenization.TokenType, stt-1)
 
-					for i := range potentialTypes {
-						potentialTypes[i] = tokenization.TokenTypeSpace
+					for j := range potentialTypes {
+						potentialTypes[j] = tokenization.TokenTypeSpace
 					}
 
 					if prevs, foundPrevs := t.PrevNTypes(potentialTypes); foundPrevs {
@@ -596,13 +596,16 @@ func compileGenerateHTMLTokenHandleTag(t *tokenization.Token, tokenStack *tokeni
 				buff2.WriteByte('<')
 				buff2.WriteString(tags[i])
 				for j := 0; j < attributesSliceLen; j++ {
-					buff2.WriteByte(' ')
-					buff2.WriteString(attributesSlice[j][0])
-					if v := attributesSlice[j][1]; v != "" {
-						buff2.WriteByte('=')
-						buff2.WriteByte('"')
-						buff2.WriteString(attributesSlice[j][1])
-						buff2.WriteByte('"')
+					a := attributesSlice[j]
+					if k := a[0]; k != "" {
+						buff2.WriteByte(' ')
+						buff2.WriteString(a[0])
+						if v := a[1]; v != "" {
+							buff2.WriteByte('=')
+							buff2.WriteByte('"')
+							buff2.WriteString(v)
+							buff2.WriteByte('"')
+						}
 					}
 				}
 				buff2.WriteByte('>')

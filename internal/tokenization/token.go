@@ -12,7 +12,8 @@ type Token struct {
 
 func (t *Token) SimpleCloneForClosingTag() *Token {
 	return &Token{
-		Type: t.Type,
+		Collection: t.Collection,
+		Type:       t.Type,
 	}
 }
 
