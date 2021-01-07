@@ -36,27 +36,40 @@ func (t *Token) Prev() *Token {
 	}
 }
 
-func (t *Token) PrevN(n int) (prevs *TokenCollection, found bool) {
+func (t *Token) Next() *Token {
+	if t == nil {
+		return nil
+	}
+
+	t2 := t
+
+	for {
+		if t2 = t2.RawNext; t2 == nil {
+			return nil
+		}
+
+		if t2.Type != TokenTypeEmpty {
+			return t2
+		}
+	}
+}
+
+func (t *Token) PrevNCollection(n int) (prevs *TokenCollection, foundAll bool) {
 	if t == nil {
 		return
 	}
 
 	prevs = TokenCollectionNewEmpty()
 	t2 := t
-	var i, j int
+	var i int
 
 	for {
-		if i+j >= n {
+		if i >= n {
 			break
 		}
 
-		if t2 = t2.RawPrev; t2 == nil {
+		if t2 = t2.Prev(); t2 == nil {
 			return
-		}
-
-		if t2.Type == TokenTypeEmpty {
-			j++
-			continue
 		}
 
 		prevs.PushAsIs(t2)
@@ -65,13 +78,43 @@ func (t *Token) PrevN(n int) (prevs *TokenCollection, found bool) {
 	}
 
 	if prevs.Len() == n {
-		found = true
+		foundAll = true
 	}
 
 	return
 }
 
-func (t *Token) PrevNTypes(types []TokenType) (prevs *TokenCollection, found bool) {
+func (t *Token) NextNCollection(n int) (nexts *TokenCollection, foundAll bool) {
+	if t == nil {
+		return
+	}
+
+	nexts = TokenCollectionNewEmpty()
+	t2 := t
+	var i int
+
+	for {
+		if i >= n {
+			break
+		}
+
+		if t2 = t2.Next(); t2 == nil {
+			return
+		}
+
+		nexts.PushAsIs(t2)
+
+		i++
+	}
+
+	if nexts.Len() == n {
+		foundAll = true
+	}
+
+	return
+}
+
+func (t *Token) PrevNTypesCollection(types []TokenType) (prevs *TokenCollection, foundAll bool) {
 	if t == nil {
 		return
 	}
@@ -79,20 +122,15 @@ func (t *Token) PrevNTypes(types []TokenType) (prevs *TokenCollection, found boo
 	prevs = TokenCollectionNewEmpty()
 	t2 := t
 	l := len(types)
-	var i, j int
+	var i int
 
 	for {
-		if i+j >= l {
+		if i >= l {
 			break
 		}
 
-		if t2 = t2.RawPrev; t2 == nil || t2.Type != types[i] {
+		if t2 = t2.Prev(); t2 == nil || t2.Type != types[i] {
 			return
-		}
-
-		if t2.Type == TokenTypeEmpty {
-			j++
-			continue
 		}
 
 		prevs.PushAsIs(t2)
@@ -101,13 +139,13 @@ func (t *Token) PrevNTypes(types []TokenType) (prevs *TokenCollection, found boo
 	}
 
 	if prevs.Len() == l {
-		found = true
+		foundAll = true
 	}
 
 	return
 }
 
-func (t *Token) NextNTypes(types []TokenType) (nexts *TokenCollection, found bool) {
+func (t *Token) NextNTypesCollection(types []TokenType) (nexts *TokenCollection, foundAll bool) {
 	if t == nil {
 		return
 	}
@@ -115,20 +153,15 @@ func (t *Token) NextNTypes(types []TokenType) (nexts *TokenCollection, found boo
 	nexts = TokenCollectionNewEmpty()
 	t2 := t
 	l := len(types)
-	var i, j int
+	var i int
 
 	for {
-		if i+j >= l {
+		if i >= l {
 			break
 		}
 
-		if t2 = t2.RawNext; t2 == nil || t2.Type != types[i] {
+		if t2 = t2.Next(); t2 == nil || t2.Type != types[i] {
 			return
-		}
-
-		if t2.Type == TokenTypeEmpty {
-			j++
-			continue
 		}
 
 		nexts.PushAsIs(t2)
@@ -137,49 +170,43 @@ func (t *Token) NextNTypes(types []TokenType) (nexts *TokenCollection, found boo
 	}
 
 	if nexts.Len() == l {
-		found = true
+		foundAll = true
 	}
 
 	return
 }
 
-func (t *Token) PrevUntilMeetToken(stopToken *Token) (prevs *TokenCollection, found bool) {
+func (t *Token) PrevsCollectionUntilMeetToken(stopToken *Token) (prevs *TokenCollection, foundAny bool) {
 	prevs = TokenCollectionNewEmpty()
 	t2 := t
 
 	for {
-		if t2 = t2.RawPrev; t2 == nil || t2 == stopToken {
+		if t2 = t2.Prev(); t2 == nil || t2 == stopToken {
 			break
 		}
 
-		if t2.Type != TokenTypeEmpty {
-			prevs.PushAsIs(t2)
-		}
+		prevs.PushAsIs(t2)
 	}
 
 	if prevs.Len() > 0 {
-		found = true
+		foundAny = true
 	}
 
 	return
 }
 
-func (t *Token) PrevUntilStartOfPotentialTypes(possibleTypes ...TokenType) (prevs *TokenCollection, found bool) {
+func (t *Token) PrevsCollectionUntilStartOfPotentialTypes(potentialTypes ...TokenType) (prevs *TokenCollection, foundAny bool) {
 	prevs = TokenCollectionNewEmpty()
 	t2 := t
 
 	for {
-		if t2 = t2.RawPrev; t2 == nil {
+		if t2 = t2.Prev(); t2 == nil {
 			break
-		}
-
-		if t2.Type == TokenTypeEmpty {
-			continue
 		}
 
 		var match bool
 
-		for _, y := range possibleTypes {
+		for _, y := range potentialTypes {
 			if t2.Type == y {
 				match = true
 				break
@@ -194,28 +221,24 @@ func (t *Token) PrevUntilStartOfPotentialTypes(possibleTypes ...TokenType) (prev
 	}
 
 	if prevs.Len() > 0 {
-		found = true
+		foundAny = true
 	}
 
 	return
 }
 
-func (t *Token) PrevUntilEndOfPotentialTypes(possibleTypes ...TokenType) (prevs *TokenCollection, found bool) {
+func (t *Token) PrevsCollectionUntilEndOfPotentialTypes(potentialTypes ...TokenType) (prevs *TokenCollection, foundAny bool) {
 	prevs = TokenCollectionNewEmpty()
 	t2 := t
 
 	for {
-		if t2 = t2.RawPrev; t2 == nil {
+		if t2 = t2.Prev(); t2 == nil {
 			break
-		}
-
-		if t2.Type == TokenTypeEmpty {
-			continue
 		}
 
 		var match bool
 
-		for _, y := range possibleTypes {
+		for _, y := range potentialTypes {
 			if t2.Type == y {
 				match = true
 				break
@@ -230,28 +253,24 @@ func (t *Token) PrevUntilEndOfPotentialTypes(possibleTypes ...TokenType) (prevs 
 	}
 
 	if prevs.Len() > 0 {
-		found = true
+		foundAny = true
 	}
 
 	return
 }
 
-func (t *Token) NextUntilStartOfPotentialTypes(possibleTypes ...TokenType) (nexts *TokenCollection, found bool) {
+func (t *Token) NextsCollectionUntilStartOfPotentialTypes(potentialTypes ...TokenType) (nexts *TokenCollection, foundAny bool) {
 	nexts = TokenCollectionNewEmpty()
 	t2 := t
 
 	for {
-		if t2 = t2.RawNext; t2 == nil {
+		if t2 = t2.Next(); t2 == nil {
 			break
-		}
-
-		if t2.Type == TokenTypeEmpty {
-			continue
 		}
 
 		var match bool
 
-		for _, y := range possibleTypes {
+		for _, y := range potentialTypes {
 			if t2.Type == y {
 				match = true
 				break
@@ -266,28 +285,24 @@ func (t *Token) NextUntilStartOfPotentialTypes(possibleTypes ...TokenType) (next
 	}
 
 	if nexts.Len() > 0 {
-		found = true
+		foundAny = true
 	}
 
 	return
 }
 
-func (t *Token) NextUntilEndOfPotentialTypes(possibleTypes ...TokenType) (nexts *TokenCollection, found bool) {
+func (t *Token) NextsCollectionUntilEndOfPotentialTypes(potentialTypes ...TokenType) (nexts *TokenCollection, foundAny bool) {
 	nexts = TokenCollectionNewEmpty()
 	t2 := t
 
 	for {
-		if t2 = t2.RawNext; t2 == nil {
+		if t2 = t2.Next(); t2 == nil {
 			break
-		}
-
-		if t2.Type == TokenTypeEmpty {
-			continue
 		}
 
 		var match bool
 
-		for _, y := range possibleTypes {
+		for _, y := range potentialTypes {
 			if t2.Type == y {
 				match = true
 				break
@@ -302,7 +317,7 @@ func (t *Token) NextUntilEndOfPotentialTypes(possibleTypes ...TokenType) (nexts 
 	}
 
 	if nexts.Len() > 0 {
-		found = true
+		foundAny = true
 	}
 
 	return
