@@ -49,13 +49,13 @@ func (c *TokenCollection) Push(tokens ...*Token) {
 		}
 
 		if prev := c.Peek(); prev != nil {
-			t.Prev = prev
-			prev.Next = t
+			t.RawPrev = prev
+			prev.RawNext = t
 		} else {
-			t.Prev = nil
+			t.RawPrev = nil
 		}
 
-		t.Next = nil
+		t.RawNext = nil
 		t.Collection = c
 
 		c.Data = append(c.Data, t)
@@ -88,12 +88,12 @@ func (c *TokenCollection) Pop() *Token {
 	if i := c.Len() - 1; i >= 0 {
 		t := c.Data[i]
 
-		if prev := t.Prev; prev != nil {
-			prev.Next = nil
+		if prev := t.RawPrev; prev != nil {
+			prev.RawNext = nil
 		}
 
-		t.Prev = nil
-		t.Next = nil
+		t.RawPrev = nil
+		t.RawNext = nil
 
 		c.Data = c.Data[:i]
 
@@ -125,10 +125,10 @@ func (c *TokenCollection) Swap(index1, index2 int) (success bool) {
 	}
 
 	t1, t2 := c.Data[index1], c.Data[index2]
-	t1CachedNext, t1CachedPrev := t1.Next, t1.Prev
+	t1CachedNext, t1CachedPrev := t1.RawNext, t1.RawPrev
 
-	t1.Next, t1.Prev = t2.Next, t2.Prev
-	t2.Next, t2.Prev = t1CachedNext, t1CachedPrev
+	t1.RawNext, t1.RawPrev = t2.RawNext, t2.RawPrev
+	t2.RawNext, t2.RawPrev = t1CachedNext, t1CachedPrev
 
 	c.Data[index2], c.Data[index1] = t1, t2
 
@@ -136,7 +136,7 @@ func (c *TokenCollection) Swap(index1, index2 int) (success bool) {
 }
 
 func (c *TokenCollection) ContainsType(y TokenType) bool {
-	for t := c.Peek(); t != nil; t = t.Prev {
+	for t := c.Peek(); t != nil; t = t.RawPrev {
 		if t.Type == y {
 			return true
 		}

@@ -7,8 +7,13 @@ import (
 	"net/url"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/theTardigrade/golang-slimdown/internal/tokenization"
+)
+
+const (
+	compileUseConcurrencyTokensMinLen = 1 << 12
 )
 
 func CompileString(input string, options *Options) (output template.HTML, err error) {
@@ -18,8 +23,8 @@ func CompileString(input string, options *Options) (output template.HTML, err er
 func Compile(input []byte, options *Options) (output template.HTML, err error) {
 	tokens := tokenization.TokenCollectionNew(input)
 
-	if options == nil {
-		options = &Options{}
+	if options == nil || options == &DefaultOptions {
+		options = DefaultOptions.Clone()
 	}
 
 	err = compileTokenize(options, tokens)
@@ -29,6 +34,11 @@ func Compile(input []byte, options *Options) (output template.HTML, err error) {
 
 	if options.DebugPrintTokens {
 		debugPrintTokens(tokens)
+	}
+
+	if options.UseConcurrency && tokens.Len() < compileUseConcurrencyTokensMinLen {
+		options = options.Clone()
+		options.UseConcurrency = false
 	}
 
 	err = compileGenerateHTML(options, tokens)
@@ -61,18 +71,45 @@ func compileTokenize(options *Options, tokens *tokenization.TokenCollection) (er
 		tokens.PushNewEmpty(tokenization.TokenTypeDocumentBodyBound)
 	}
 
-	if options.EnableParagraphTags {
+	if options.EnableParagraphs {
 		defer tokens.PushNewEmpty(tokenization.TokenTypeParagraphBound)
 		tokens.PushNewEmpty(tokenization.TokenTypeParagraphBound)
 	}
 
 	for i, b := range tokens.Input {
 		switch b {
+		case 138: // SPA_HAR
+			var match bool
+
+			if t := tokens.Peek(); t != nil && t.Type == tokenization.TokenTypeText {
+				if l := t.Len(); l >= 2 {
+					b1 := tokens.Input[t.InputEndIndex-1]
+					b2 := tokens.Input[t.InputEndIndex-2]
+					if b1 == 128 && b2 == 226 {
+						t.InputEndIndex -= 2
+						if l == 2 {
+							t.Type = tokenization.TokenTypeEmpty
+						}
+						match = true
+					}
+				}
+
+				if match {
+					tokens.PushNewSingle(tokenization.TokenTypeSpaceHair, i)
+				} else {
+					t.InputEndIndex++
+					match = true
+				}
+			}
+
+			if !match {
+				tokens.PushNewSingle(tokenization.TokenTypeText, i)
+			}
 		case '*':
-			match := true
+			var match bool
 
 			if t := tokens.Peek(); t != nil {
-				switch t.Type {
+				switch match = true; t.Type {
 				case tokenization.TokenTypeAsteriskDouble:
 					t.Type = tokenization.TokenTypeAsteriskTriple
 				case tokenization.TokenTypeAsterisk:
@@ -90,11 +127,46 @@ func compileTokenize(options *Options, tokens *tokenization.TokenCollection) (er
 				tokens.PushNewSingle(tokenization.TokenTypeAsterisk, i)
 			}
 		case '_':
-			if t := tokens.Peek(); t != nil && t.Type == tokenization.TokenTypeUnderscore {
-				t.Type = tokenization.TokenTypeUnderscoreDouble
-				t.InputEndIndex++
-			} else {
+			var match bool
+
+			if t := tokens.Peek(); t != nil {
+				switch match = true; t.Type {
+				case tokenization.TokenTypeUnderscoreDouble:
+					t.Type = tokenization.TokenTypeUnderscoreTriple
+				case tokenization.TokenTypeUnderscore:
+					t.Type = tokenization.TokenTypeUnderscoreDouble
+				default:
+					match = false
+				}
+
+				if match {
+					t.InputEndIndex++
+				}
+			}
+
+			if !match {
 				tokens.PushNewSingle(tokenization.TokenTypeUnderscore, i)
+			}
+		case '-':
+			var match bool
+
+			if t := tokens.Peek(); t != nil {
+				switch match = true; t.Type {
+				case tokenization.TokenTypeHyphenDouble:
+					t.Type = tokenization.TokenTypeHyphenTriple
+				case tokenization.TokenTypeHyphen:
+					t.Type = tokenization.TokenTypeHyphenDouble
+				default:
+					match = false
+				}
+
+				if match {
+					t.InputEndIndex++
+				}
+			}
+
+			if !match {
+				tokens.PushNewSingle(tokenization.TokenTypeHyphen, i)
 			}
 		case '\\':
 			backslashTokens.PushAsIs(
@@ -123,8 +195,22 @@ func compileTokenize(options *Options, tokens *tokenization.TokenCollection) (er
 		case '\r':
 			tokens.PushNewSingle(tokenization.TokenTypeCarriageReturn, i)
 		case '\n':
-			tokens.PushNewSingle(tokenization.TokenTypeParagraphBound, i)
-			tokens.PushNewSingle(tokenization.TokenTypeParagraphBound, i)
+			t := tokens.PushNewSingle(tokenization.TokenTypeLineBreak, i)
+
+			prev := t.Prev()
+			if prev != nil {
+				if prev.Type == tokenization.TokenTypeCarriageReturn {
+					prev.Type = tokenization.TokenTypeEmpty
+				}
+			}
+
+			prev = t.Prev()
+			if prev != nil {
+				if prev.Type == tokenization.TokenTypeLineBreak {
+					prev.Type = tokenization.TokenTypeParagraphBound
+					t.Type = tokenization.TokenTypeParagraphBound
+				}
+			}
 		case '\t':
 			if tts := options.TabToSpaces; tts > 0 {
 				for j := 0; j < tts; j++ {
@@ -185,13 +271,13 @@ func compileTokenizeBackslashTransforms(tokens *tokenization.TokenCollection) (e
 	for _, t := range tokens.Data {
 		var isHandled bool
 
-		if nextEmpty := t.Next; nextEmpty != nil && nextEmpty.Type == tokenization.TokenTypeEmpty {
-			if nextNextText := nextEmpty.Next; nextNextText != nil && nextNextText.Type == tokenization.TokenTypeText {
+		if nextEmpty := t.RawNext; nextEmpty != nil && nextEmpty.Type == tokenization.TokenTypeEmpty {
+			if nextNextText := nextEmpty.RawNext; nextNextText != nil && nextNextText.Type == tokenization.TokenTypeText {
 				if nextNextText.Len() > 0 {
 					switch isHandled = true; tokens.Input[nextNextText.InputStartIndex] {
 					case 'n':
 						t.Type = tokenization.TokenTypeParagraphBound
-						t.Next.Type = tokenization.TokenTypeParagraphBound
+						t.RawNext.Type = tokenization.TokenTypeParagraphBound
 					case 'r':
 						t.Type = tokenization.TokenTypeCarriageReturn
 					case 't':
@@ -221,9 +307,62 @@ func compileTokenizeBackslashTransforms(tokens *tokenization.TokenCollection) (e
 func compileGenerateHTML(options *Options, tokens *tokenization.TokenCollection) (err error) {
 	tokenStack := tokenization.TokenCollectionNewEmpty()
 
-	for _, t := range tokens.Data {
-		if err = compileGenerateHTMLToken(options, t, tokenStack); err != nil {
+	if !options.UseConcurrency {
+		for _, t := range tokens.Data {
+			if err = compileGenerateHTMLToken(options, t, tokenStack); err != nil {
+				return
+			}
+		}
+	} else {
+		var wg sync.WaitGroup
+		errChan := make(chan error)
+
+		go func(errChan chan<- error) {
+			for _, t := range tokens.Data {
+				for _, y := range tokenization.TokenTypeCompileGenerateHTMLUseConcurrency {
+					if y == t.Type {
+						wg.Add(1)
+
+						go func(t *tokenization.Token) {
+							wg.Done()
+
+							if err := compileGenerateHTMLToken(options, t, nil); err != nil {
+								select {
+								case errChan <- err:
+								default:
+								}
+							}
+						}(t)
+
+						break
+					}
+				}
+			}
+		}(errChan)
+
+		for _, t := range tokens.Data {
+			var match bool
+
+			for _, y := range tokenization.TokenTypeCompileGenerateHTMLUseConcurrency {
+				if y == t.Type {
+					match = true
+					break
+				}
+			}
+
+			if !match {
+				if err = compileGenerateHTMLToken(options, t, tokenStack); err != nil {
+					return
+				}
+			}
+		}
+
+		wg.Wait()
+
+		select {
+		case err = <-errChan:
 			return
+		default:
 		}
 	}
 
@@ -231,7 +370,9 @@ func compileGenerateHTML(options *Options, tokens *tokenization.TokenCollection)
 		for {
 			if t := tokenStack.PopAsIs(); t != nil {
 				t.Type = tokenization.TokenTypeText
-				compileGenerateHTMLToken(options, t, tokenStack)
+				if err = compileGenerateHTMLToken(options, t, nil); err != nil {
+					return
+				}
 			} else {
 				break
 			}
@@ -245,6 +386,12 @@ func compileGenerateHTMLToken(options *Options, t *tokenization.Token, tokenStac
 	switch y := t.Type; y {
 	case tokenization.TokenTypeEmpty:
 		break
+	case tokenization.TokenTypeText:
+		compileGenerateHTMLTokenHandleBytes(t)
+
+		if !options.AllowHTML {
+			t.HTML = []byte(html.EscapeString(string(t.HTML)))
+		}
 	case tokenization.TokenTypeSpace:
 		t.HTML = []byte{' '}
 
@@ -259,18 +406,31 @@ func compileGenerateHTMLToken(options *Options, t *tokenization.Token, tokenStac
 				}
 			}
 		}
-	case tokenization.TokenTypeParagraphBound,
-		tokenization.TokenTypeDocumentBodyBound,
+	case tokenization.TokenTypeDocumentBodyBound,
 		tokenization.TokenTypeDocumentHeadBound,
 		tokenization.TokenTypeDocumentHTMLBound:
 		err = compileGenerateHTMLTokenHandleTag(t, tokenStack, options)
+	case tokenization.TokenTypeParagraphBound:
+		if !options.EnableParagraphs {
+			t.HTML = []byte{'\n'}
+			break
+		}
+
+		err = compileGenerateHTMLTokenHandleTag(t, tokenStack, options)
+	case tokenization.TokenTypeLineBreak:
+		if !options.EnableParagraphs {
+			t.HTML = []byte{'\n'}
+			break
+		}
+
+		err = compileGenerateHTMLTokenHandleTagFromSingleToken(t, tokenStack, options)
 	case tokenization.TokenTypeExclamation:
 		if !options.EnableImages {
 			compileGenerateHTMLTokenHandleBytes(t)
 			break
 		}
 
-		squareBracketOpenToken := t.Next
+		squareBracketOpenToken := t.RawNext
 		if squareBracketOpenToken == nil || squareBracketOpenToken.Type != tokenization.TokenTypeSquareBracketOpen {
 			compileGenerateHTMLTokenHandleBytes(t)
 			break
@@ -301,7 +461,7 @@ func compileGenerateHTMLToken(options *Options, t *tokenization.Token, tokenStac
 			break
 		}
 
-		finalToken := linkTokens.Get(-1).Next
+		finalToken := linkTokens.Get(-1).RawNext
 		if finalToken == nil || finalToken.Type != tokenization.TokenTypeParenthesisClose {
 			compileGenerateHTMLTokenHandleBytes(t)
 			break
@@ -322,13 +482,14 @@ func compileGenerateHTMLToken(options *Options, t *tokenization.Token, tokenStac
 		var linkURL *url.URL
 		linkURL, err = url.Parse(linkString)
 		if err != nil {
-			return
+			compileGenerateHTMLTokenHandleBytes(t)
+			break
 		}
 
 		linkString = linkURL.String()
 		if strings.Contains(linkString, `"`) {
-			err = ErrCompileURLCannotContainDoubleQuote
-			return
+			compileGenerateHTMLTokenHandleBytes(t)
+			break
 		}
 
 		t.Type = tokenization.TokenTypeImage
@@ -385,7 +546,7 @@ func compileGenerateHTMLToken(options *Options, t *tokenization.Token, tokenStac
 			break
 		}
 
-		finalToken := linkTokens.Get(-1).Next
+		finalToken := linkTokens.Get(-1).RawNext
 		if finalToken == nil || finalToken.Type != tokenization.TokenTypeParenthesisClose {
 			compileGenerateHTMLTokenHandleBytes(t)
 			break
@@ -402,13 +563,14 @@ func compileGenerateHTMLToken(options *Options, t *tokenization.Token, tokenStac
 		var linkURL *url.URL
 		linkURL, err = url.Parse(linkString)
 		if err != nil {
-			return
+			compileGenerateHTMLTokenHandleBytes(t)
+			break
 		}
 
 		linkString = linkURL.String()
 		if strings.Contains(linkString, `"`) {
-			err = ErrCompileURLCannotContainDoubleQuote
-			return
+			compileGenerateHTMLTokenHandleBytes(t)
+			break
 		}
 
 		t.Type = tokenization.TokenTypeLink
@@ -431,18 +593,15 @@ func compileGenerateHTMLToken(options *Options, t *tokenization.Token, tokenStac
 		tokenization.TokenTypeParenthesisClose,
 		tokenization.TokenTypeSquareBracketClose:
 		compileGenerateHTMLTokenHandleBytes(t)
-	case tokenization.TokenTypeText:
-		compileGenerateHTMLTokenHandleBytes(t)
-
-		if !options.AllowHTML {
-			t.HTML = []byte(html.EscapeString(string(t.HTML)))
-		}
 	case tokenization.TokenTypeTab:
 		t.HTML = []byte{'\t'}
 	case tokenization.TokenTypeCarriageReturn:
 		t.HTML = []byte{}
 
-		if _, foundNewline := t.NextUntilEndOfPotentialTypes(tokenization.TokenTypeParagraphBound); !foundNewline {
+		if _, foundNewline := t.NextUntilEndOfPotentialTypes(
+			tokenization.TokenTypeParagraphBound,
+			tokenization.TokenTypeLineBreak,
+		); !foundNewline {
 			prevs, foundPrevs := t.PrevUntilStartOfPotentialTypes(
 				tokenization.TokenTypeParagraphBound,
 			)
@@ -460,13 +619,13 @@ func compileGenerateHTMLToken(options *Options, t *tokenization.Token, tokenStac
 			break
 		}
 
-		if next := t.Next; next != nil && next.Type == y {
+		if next := t.RawNext; next != nil && next.Type == y {
 			compileGenerateHTMLTokenHandleBytes(t)
 			break
 		}
 
-		if prev := t.Prev; prev != nil && prev.Type == y {
-			if prevPrev := prev.Prev; prevPrev == nil || prevPrev.Type != y {
+		if prev := t.RawPrev; prev != nil && prev.Type == y {
+			if prevPrev := prev.RawPrev; prevPrev == nil || prevPrev.Type != y {
 				break
 			}
 		}
@@ -493,6 +652,50 @@ func compileGenerateHTMLToken(options *Options, t *tokenization.Token, tokenStac
 		}
 
 		err = compileGenerateHTMLTokenHandleTag(t, tokenStack, options)
+	case tokenization.TokenTypeSpaceHair:
+		t.HTML = []byte(" ")
+	case tokenization.TokenTypeHyphenTriple:
+		if !options.EnableHyphenTransforms {
+			compileGenerateHTMLTokenHandleBytes(t)
+			break
+		}
+
+		if next := t.RawNext; next != nil && next.Type == tokenization.TokenTypeSpace {
+			next.Type = tokenization.TokenTypeSpaceHair
+		}
+
+		if prev := t.RawPrev; prev != nil && prev.Type == tokenization.TokenTypeSpace {
+			prev.Type = tokenization.TokenTypeSpaceHair
+		}
+
+		t.HTML = []byte("—")
+	case tokenization.TokenTypeHyphenDouble:
+		if !options.EnableHyphenTransforms {
+			compileGenerateHTMLTokenHandleBytes(t)
+			break
+		}
+
+		if next := t.RawNext; next != nil && next.Type == tokenization.TokenTypeSpace {
+			next.Type = tokenization.TokenTypeSpaceHair
+		}
+
+		if prev := t.RawPrev; prev != nil && prev.Type == tokenization.TokenTypeSpace {
+			prev.Type = tokenization.TokenTypeSpaceHair
+		}
+
+		t.HTML = []byte("–")
+	case tokenization.TokenTypeHyphen:
+		if options.EnableHyphenTransforms {
+			if next := t.RawNext; next != nil && next.Type == tokenization.TokenTypeSpace {
+				next.Type = tokenization.TokenTypeSpaceHair
+			}
+
+			if prev := t.RawPrev; prev != nil && prev.Type == tokenization.TokenTypeSpace {
+				prev.Type = tokenization.TokenTypeSpaceHair
+			}
+		}
+
+		compileGenerateHTMLTokenHandleBytes(t)
 	case tokenization.TokenTypeEqualsDouble:
 		if !options.EnableMarkTags {
 			compileGenerateHTMLTokenHandleBytes(t)

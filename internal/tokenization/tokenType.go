@@ -14,8 +14,10 @@ const (
 	TokenTypeDocumentHeadBound
 	TokenTypeDocumentBodyBound
 	TokenTypeParagraphBound
+	TokenTypeLineBreak
 	TokenTypeText
 	TokenTypeSpace
+	TokenTypeSpaceHair
 	TokenTypeTab
 	TokenTypeCarriageReturn
 	TokenTypeBackslash
@@ -25,6 +27,9 @@ const (
 	TokenTypeUnderscore
 	TokenTypeUnderscoreDouble
 	TokenTypeUnderscoreTriple
+	TokenTypeHyphen
+	TokenTypeHyphenDouble
+	TokenTypeHyphenTriple
 	TokenTypeEqualsDouble
 	TokenTypeBacktick
 	TokenTypeExclamation
@@ -50,10 +55,14 @@ func (t TokenType) String() string {
 		return "DOC_BDY"
 	case TokenTypeParagraphBound:
 		return "PAR_BND"
+	case TokenTypeLineBreak:
+		return "LIN_BRK"
 	case TokenTypeText:
 		return "TXT"
 	case TokenTypeSpace:
 		return "SPC"
+	case TokenTypeSpaceHair:
+		return "SPC_HAR"
 	case TokenTypeTab:
 		return "TAB"
 	case TokenTypeCarriageReturn:
@@ -72,6 +81,12 @@ func (t TokenType) String() string {
 		return "UND_DUB"
 	case TokenTypeUnderscoreTriple:
 		return "UND_TRI"
+	case TokenTypeHyphen:
+		return "HYP"
+	case TokenTypeHyphenDouble:
+		return "HYP_DUB"
+	case TokenTypeHyphenTriple:
+		return "HYP_TRI"
 	case TokenTypeEqualsDouble:
 		return "EQU_DUB"
 	case TokenTypeBacktick:

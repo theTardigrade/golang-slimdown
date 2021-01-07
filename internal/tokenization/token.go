@@ -1,7 +1,8 @@
 package tokenization
 
 type Token struct {
-	Prev, Next      *Token
+	RawPrev         *Token
+	RawNext         *Token
 	Collection      *TokenCollection
 	Attributes      map[string]string
 	HTML            []byte
@@ -15,6 +16,59 @@ func (t *Token) SimpleCloneForClosingTag() *Token {
 		Collection: t.Collection,
 		Type:       t.Type,
 	}
+}
+
+func (t *Token) Prev() *Token {
+	if t == nil {
+		return nil
+	}
+
+	t2 := t
+
+	for {
+		if t2 = t2.RawPrev; t2 == nil {
+			return nil
+		}
+
+		if t2.Type != TokenTypeEmpty {
+			return t2
+		}
+	}
+}
+
+func (t *Token) PrevN(n int) (prevs *TokenCollection, found bool) {
+	if t == nil {
+		return
+	}
+
+	prevs = TokenCollectionNewEmpty()
+	t2 := t
+	var i, j int
+
+	for {
+		if i+j >= n {
+			break
+		}
+
+		if t2 = t2.RawPrev; t2 == nil {
+			return
+		}
+
+		if t2.Type == TokenTypeEmpty {
+			j++
+			continue
+		}
+
+		prevs.PushAsIs(t2)
+
+		i++
+	}
+
+	if prevs.Len() == n {
+		found = true
+	}
+
+	return
 }
 
 func (t *Token) PrevNTypes(types []TokenType) (prevs *TokenCollection, found bool) {
@@ -32,7 +86,7 @@ func (t *Token) PrevNTypes(types []TokenType) (prevs *TokenCollection, found boo
 			break
 		}
 
-		if t2 = t2.Prev; t2 == nil || t2.Type != types[i] {
+		if t2 = t2.RawPrev; t2 == nil || t2.Type != types[i] {
 			return
 		}
 
@@ -68,7 +122,7 @@ func (t *Token) NextNTypes(types []TokenType) (nexts *TokenCollection, found boo
 			break
 		}
 
-		if t2 = t2.Next; t2 == nil || t2.Type != types[i] {
+		if t2 = t2.RawNext; t2 == nil || t2.Type != types[i] {
 			return
 		}
 
@@ -94,7 +148,7 @@ func (t *Token) PrevUntilMeetToken(stopToken *Token) (prevs *TokenCollection, fo
 	t2 := t
 
 	for {
-		if t2 = t2.Prev; t2 == nil || t2 == stopToken {
+		if t2 = t2.RawPrev; t2 == nil || t2 == stopToken {
 			break
 		}
 
@@ -115,7 +169,7 @@ func (t *Token) PrevUntilStartOfPotentialTypes(possibleTypes ...TokenType) (prev
 	t2 := t
 
 	for {
-		if t2 = t2.Prev; t2 == nil {
+		if t2 = t2.RawPrev; t2 == nil {
 			break
 		}
 
@@ -151,7 +205,7 @@ func (t *Token) PrevUntilEndOfPotentialTypes(possibleTypes ...TokenType) (prevs 
 	t2 := t
 
 	for {
-		if t2 = t2.Prev; t2 == nil {
+		if t2 = t2.RawPrev; t2 == nil {
 			break
 		}
 
@@ -187,7 +241,7 @@ func (t *Token) NextUntilStartOfPotentialTypes(possibleTypes ...TokenType) (next
 	t2 := t
 
 	for {
-		if t2 = t2.Next; t2 == nil {
+		if t2 = t2.RawNext; t2 == nil {
 			break
 		}
 
@@ -223,7 +277,7 @@ func (t *Token) NextUntilEndOfPotentialTypes(possibleTypes ...TokenType) (nexts 
 	t2 := t
 
 	for {
-		if t2 = t2.Next; t2 == nil {
+		if t2 = t2.RawNext; t2 == nil {
 			break
 		}
 

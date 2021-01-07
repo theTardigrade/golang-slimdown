@@ -12,6 +12,9 @@ var (
 		TokenTypeUnderscore,
 		TokenTypeUnderscoreDouble,
 		TokenTypeUnderscoreTriple,
+		TokenTypeHyphen,
+		TokenTypeHyphenDouble,
+		TokenTypeHyphenTriple,
 		TokenTypeEqualsDouble,
 		TokenTypeBacktick,
 		TokenTypeExclamation,
@@ -30,4 +33,12 @@ var (
 var (
 	TokenTypeListImageSegmentText = TokenTypeListLinkSegmentText[:]
 	TokenTypeListImageSegmentLink = TokenTypeListLinkSegmentLink[:]
+)
+
+var (
+	TokenTypeCompileGenerateHTMLUseConcurrency = []TokenType{
+		TokenTypeEmpty,
+		TokenTypeText,
+		TokenTypeTab,
+	}
 )
