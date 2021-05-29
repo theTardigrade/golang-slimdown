@@ -57,6 +57,7 @@ func (o *Options) Clone() *Options {
 		EnableCodeTags:            o.EnableCodeTags,
 		EnableDocumentTags:        o.EnableDocumentTags,
 		EnableEmTags:              o.EnableEmTags,
+		EnableHeadings:            o.EnableHeadings,
 		EnableImages:              o.EnableImages,
 		EnableLinks:               o.EnableLinks,
 		EnableParagraphs:          o.EnableParagraphs,

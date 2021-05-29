@@ -965,11 +965,13 @@ func compileClean(tokens *tokenization.TokenCollection) {
 		}
 
 		if shouldClean {
-			startTagToken.Type = tokenization.TokenTypeEmpty
-			endTagToken.Type = tokenization.TokenTypeEmpty
+			tt := tokenization.TokenTypeEmpty
+
+			startTagToken.Type = tt
+			endTagToken.Type = tt
 
 			for _, p := range prevs.Data {
-				p.Type = tokenization.TokenTypeEmpty
+				p.Type = tt
 			}
 		}
 	}
