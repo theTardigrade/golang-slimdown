@@ -77,8 +77,10 @@ func (c *TokenCollection) PushAsIs(tokens ...*Token) {
 }
 
 func (c *TokenCollection) Peek() *Token {
-	if l := c.Len(); l > 0 {
-		return c.Data[l-1]
+	for i := c.Len() - 1; i >= 0; i-- {
+		if t := c.Data[i]; t.Type != TokenTypeEmpty {
+			return t
+		}
 	}
 
 	return nil
