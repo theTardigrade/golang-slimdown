@@ -44,7 +44,7 @@ func (c *TokenCollection) PushNew(y TokenType, InputStartIndex int, InputEndInde
 func (c *TokenCollection) Push(tokens ...*Token) {
 	for _, t := range tokens {
 		if t == nil {
-			return
+			continue
 		}
 
 		if prev := c.Peek(); prev != nil {
@@ -64,7 +64,7 @@ func (c *TokenCollection) Push(tokens ...*Token) {
 func (c *TokenCollection) PushAsIs(tokens ...*Token) {
 	for _, t := range tokens {
 		if t == nil {
-			return
+			continue
 		}
 
 		c.Data = append(c.Data, t)
