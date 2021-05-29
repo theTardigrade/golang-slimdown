@@ -222,7 +222,7 @@ func compileTokenize(options *Options, tokens *tokenization.TokenCollection) (er
 				tokens.PushNewSingle(tokenization.TokenTypeLineBreak, i),
 			)
 		case '\t':
-			if tts := options.TabToSpaces; tts > 0 {
+			if tts := options.TabsToSpaces; tts > 0 {
 				for j := 0; j < tts; j++ {
 					tokens.PushNewSingle(tokenization.TokenTypeSpace, i)
 				}
@@ -240,7 +240,7 @@ func compileTokenize(options *Options, tokens *tokenization.TokenCollection) (er
 		case ' ':
 			t := tokens.PushNewSingle(tokenization.TokenTypeSpace, i)
 
-			if stt := options.SpacesToTab; stt > 0 {
+			if stt := options.SpacesToTabs; stt > 0 {
 				if stt == 1 {
 					t.Type = tokenization.TokenTypeTab
 				} else {

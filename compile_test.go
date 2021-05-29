@@ -27,8 +27,8 @@ var (
 		EnableParagraphs:          true,
 		EnableStrongTags:          true,
 		MaxConsecutiveSpaces:      0,
-		SpacesToTab:               0,
-		TabToSpaces:               0,
+		SpacesToTabs:              0,
+		TabsToSpaces:              0,
 	}
 	testCompileStringInput          []byte
 	testCompileStringExpectedOutput []byte
