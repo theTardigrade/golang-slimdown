@@ -4,7 +4,7 @@ import (
 	globalFilepath "github.com/theTardigrade/golang-globalFilepath"
 )
 
-func init() {
+func testInit() {
 	if err := globalFilepath.Init(); err != nil {
 		panic(err)
 	}

@@ -2,6 +2,7 @@ package slimdown
 
 import (
 	"os"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -34,6 +35,9 @@ var (
 )
 
 func init() {
+	var once sync.Once
+	once.Do(testInit)
+
 	const filePathPrefix = "testAssets/compileString"
 	var err error
 
