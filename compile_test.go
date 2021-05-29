@@ -53,7 +53,7 @@ func init() {
 }
 
 func TestCompileString(t *testing.T) {
-	output, err := Compile([]byte(testCompileStringInput), testCompileStringOptions)
+	output, err := Compile(testCompileStringInput, testCompileStringOptions)
 	if err != nil {
 		panic(err)
 	}
