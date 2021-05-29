@@ -6,7 +6,7 @@ type TokenTypeDatum struct {
 }
 
 var (
-	TokenTypeData = map[TokenType]TokenTypeDatum{
+	tokenTypeData = map[TokenType]TokenTypeDatum{
 		TokenTypeDocumentDoctype:   {Tags: []string{"!DOCTYPE"}, SelfClosing: true},
 		TokenTypeDocumentHTMLBound: {Tags: []string{"html"}},
 		TokenTypeDocumentHeadBound: {Tags: []string{"head"}},

@@ -313,15 +313,15 @@ func compileTokenizeHashHeadings(tokens *tokenization.TokenCollection) (err erro
 			continue
 		}
 
-		nextBound := t.NextOfType(tokenization.TokenTypeParagraphBound)
-
-		if nextBound == nil {
-			continue
-		}
-
 		nextSpace := t.Next()
 
 		if nextSpace == nil || nextSpace.Type != tokenization.TokenTypeSpace {
+			continue
+		}
+
+		nextBound := t.NextOfType(tokenization.TokenTypeParagraphBound)
+
+		if nextBound == nil {
 			continue
 		}
 
@@ -847,20 +847,24 @@ func compileGenerateHTMLTokenHandleTag(t *tokenization.Token, tokenStack *tokeni
 		return
 	}
 
+	datum := t.TypeDatum()
+
 	if t2 := tokenStack.Peek(); t2 != nil && t2.Type == y {
 		if t2.Attributes == nil {
 			t2.Attributes = make(map[string]string)
 		}
 		attributes := t2.Attributes
 
-		data, foundData := tokenization.TokenTypeData[y]
-		tags := data.Tags
-		tagsLen := len(data.Tags)
-		if !foundData || tagsLen < 1 {
+		var tags []string
+		var tagsLen int
+
+		if datum == nil {
 			tags = []string{"span"}
 			tagsLen = 1
-
 			attributes["class"] = t2.Type.ClassName()
+		} else {
+			tags = append(tags, datum.Tags...)
+			tagsLen = len(tags)
 		}
 
 		attributesSliceLen := len(attributes)
@@ -910,7 +914,7 @@ func compileGenerateHTMLTokenHandleTag(t *tokenization.Token, tokenStack *tokeni
 				}
 				buff2.WriteByte('>')
 
-				if !data.SelfClosing {
+				if !datum.SelfClosing {
 					buff.WriteByte('<')
 					buff.WriteByte('/')
 					buff.WriteString(tags[tagsLen-i-1])
@@ -937,6 +941,11 @@ func compileGenerateHTMLTokenHandleTag(t *tokenization.Token, tokenStack *tokeni
 func compileClean(tokens *tokenization.TokenCollection) {
 	for _, pair := range tokens.TagPairCleanData {
 		startTagToken, endTagToken := pair[0], pair[1]
+
+		if datum := startTagToken.TypeDatum(); datum != nil && datum.SelfClosing {
+			continue
+		}
+
 		shouldClean := true
 
 		prevs, foundPrevs := endTagToken.PrevsCollectionUntilMeetToken(startTagToken)
@@ -947,8 +956,6 @@ func compileClean(tokens *tokenization.TokenCollection) {
 					if p.Len() > 0 {
 						shouldClean = false
 					}
-				default:
-					break
 				}
 
 				if !shouldClean {

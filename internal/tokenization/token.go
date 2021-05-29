@@ -18,6 +18,14 @@ func (t *Token) SimpleCloneForClosingTag() *Token {
 	}
 }
 
+func (t *Token) TypeDatum() *TokenTypeDatum {
+	if d, ok := tokenTypeData[t.Type]; ok {
+		return &d
+	}
+
+	return nil
+}
+
 func (t *Token) Prev() *Token {
 	if t == nil {
 		return nil
