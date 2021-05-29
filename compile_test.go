@@ -23,7 +23,7 @@ func TestCompileString(t *testing.T) {
 
 	output, err := Compile(input, &Options{
 		AllowHTML:                 false,
-		CleanEmptyTags:            true,
+		CleanEmptyTags:            false,
 		DebugPrintTokens:          true,
 		EnableBackslashTransforms: true,
 		EnableCodeTags:            true,
@@ -45,5 +45,5 @@ func TestCompileString(t *testing.T) {
 		panic(err)
 	}
 
-	assert.Equal(t, string(output), string(expectedOutput))
+	assert.Equal(t, string(expectedOutput), string(output))
 }
