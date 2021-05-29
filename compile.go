@@ -42,6 +42,10 @@ func Compile(input []byte, options *Options) (output template.HTML, err error) {
 
 	output = tokens.HTML()
 
+	if options.DebugPrintOutput {
+		debugPrintOutput(output)
+	}
+
 	return
 }
 
@@ -515,10 +519,7 @@ func compileGenerateHTMLToken(options *Options, t *tokenization.Token, tokenStac
 		}
 
 		linkString = linkURL.String()
-		if strings.Contains(linkString, `"`) {
-			compileGenerateHTMLTokenHandleBytes(t)
-			break
-		}
+		textString = html.EscapeString(textString)
 
 		t.Type = tokenization.TokenTypeImage
 		t.Attributes = map[string]string{

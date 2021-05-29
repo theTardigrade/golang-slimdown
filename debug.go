@@ -2,6 +2,7 @@ package slimdown
 
 import (
 	"fmt"
+	"html/template"
 	"strings"
 
 	"github.com/theTardigrade/golang-slimdown/internal/tokenization"
@@ -21,4 +22,8 @@ func debugPrintTokens(tokens *tokenization.TokenCollection) {
 	}
 
 	fmt.Println(builder.String())
+}
+
+func debugPrintOutput(output template.HTML) {
+	fmt.Printf("%s\n", output)
 }

@@ -3,6 +3,7 @@ package slimdown
 type Options struct {
 	AllowHTML                 bool
 	CleanEmptyTags            bool
+	DebugPrintOutput          bool
 	DebugPrintTokens          bool
 	EnableBackslashTransforms bool
 	EnableCodeTags            bool
@@ -26,6 +27,7 @@ var (
 	DefaultOptions = Options{
 		AllowHTML:                 false,
 		CleanEmptyTags:            false,
+		DebugPrintOutput:          false,
 		DebugPrintTokens:          false,
 		EnableBackslashTransforms: false,
 		EnableCodeTags:            false,

@@ -24,6 +24,7 @@ func TestCompileString(t *testing.T) {
 	output, err := Compile(input, &Options{
 		AllowHTML:                 false,
 		CleanEmptyTags:            false,
+		DebugPrintOutput:          false,
 		DebugPrintTokens:          true,
 		EnableBackslashTransforms: true,
 		EnableCodeTags:            true,
