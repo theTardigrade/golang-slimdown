@@ -34,11 +34,3 @@ var (
 	TokenTypeListImageSegmentText = TokenTypeListLinkSegmentText[:]
 	TokenTypeListImageSegmentLink = TokenTypeListLinkSegmentLink[:]
 )
-
-var (
-	TokenTypeCompileGenerateHTMLUseConcurrency = []TokenType{
-		TokenTypeEmpty,
-		TokenTypeText,
-		TokenTypeTab,
-	}
-)

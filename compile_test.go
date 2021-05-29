@@ -39,7 +39,6 @@ func TestCompileString(t *testing.T) {
 		MaxConsecutiveSpaces:      0,
 		SpacesToTab:               0,
 		TabToSpaces:               0,
-		UseConcurrency:            false,
 	})
 	if err != nil {
 		panic(err)

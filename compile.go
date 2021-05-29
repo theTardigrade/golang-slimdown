@@ -7,13 +7,8 @@ import (
 	"net/url"
 	"sort"
 	"strings"
-	"sync"
 
 	"github.com/theTardigrade/golang-slimdown/internal/tokenization"
-)
-
-const (
-	compileUseConcurrencyTokensMinLen = 1 << 12
 )
 
 func CompileString(input string, options *Options) (output template.HTML, err error) {
@@ -34,11 +29,6 @@ func Compile(input []byte, options *Options) (output template.HTML, err error) {
 
 	if options.DebugPrintTokens {
 		debugPrintTokens(tokens)
-	}
-
-	if options.UseConcurrency && tokens.Len() < compileUseConcurrencyTokensMinLen {
-		options = options.Clone()
-		options.UseConcurrency = false
 	}
 
 	err = compileGenerateHTML(options, tokens)
@@ -396,62 +386,9 @@ func compileTokenizeBackslashTransforms(tokens *tokenization.TokenCollection) (e
 func compileGenerateHTML(options *Options, tokens *tokenization.TokenCollection) (err error) {
 	tokenStack := tokenization.TokenCollectionNewEmpty()
 
-	if !options.UseConcurrency {
-		for _, t := range tokens.Data {
-			if err = compileGenerateHTMLToken(options, t, tokenStack); err != nil {
-				return
-			}
-		}
-	} else {
-		var wg sync.WaitGroup
-		errChan := make(chan error)
-
-		go func(errChan chan<- error) {
-			for _, t := range tokens.Data {
-				for _, y := range tokenization.TokenTypeCompileGenerateHTMLUseConcurrency {
-					if y == t.Type {
-						wg.Add(1)
-
-						go func(t *tokenization.Token) {
-							wg.Done()
-
-							if err := compileGenerateHTMLToken(options, t, nil); err != nil {
-								select {
-								case errChan <- err:
-								default:
-								}
-							}
-						}(t)
-
-						break
-					}
-				}
-			}
-		}(errChan)
-
-		for _, t := range tokens.Data {
-			var match bool
-
-			for _, y := range tokenization.TokenTypeCompileGenerateHTMLUseConcurrency {
-				if y == t.Type {
-					match = true
-					break
-				}
-			}
-
-			if !match {
-				if err = compileGenerateHTMLToken(options, t, tokenStack); err != nil {
-					return
-				}
-			}
-		}
-
-		wg.Wait()
-
-		select {
-		case err = <-errChan:
+	for _, t := range tokens.Data {
+		if err = compileGenerateHTMLToken(options, t, tokenStack); err != nil {
 			return
-		default:
 		}
 	}
 

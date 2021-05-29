@@ -18,7 +18,6 @@ type Options struct {
 	MaxConsecutiveSpaces      int
 	SpacesToTab               int
 	TabToSpaces               int
-	UseConcurrency            bool
 
 	isCloned bool
 }
@@ -40,7 +39,6 @@ var (
 		MaxConsecutiveSpaces:      0,
 		SpacesToTab:               0,
 		TabToSpaces:               0,
-		UseConcurrency:            true,
 	}
 )
 
@@ -65,7 +63,6 @@ func (o *Options) Clone() *Options {
 		MaxConsecutiveSpaces:      o.MaxConsecutiveSpaces,
 		SpacesToTab:               o.SpacesToTab,
 		TabToSpaces:               o.TabToSpaces,
-		UseConcurrency:            o.UseConcurrency,
 		isCloned:                  true,
 	}
 }
