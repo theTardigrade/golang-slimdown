@@ -14,6 +14,12 @@ const (
 	TokenTypeDocumentHeadBound
 	TokenTypeDocumentBodyBound
 	TokenTypeParagraphBound
+	TokenTypeHeading1Bound
+	TokenTypeHeading2Bound
+	TokenTypeHeading3Bound
+	TokenTypeHeading4Bound
+	TokenTypeHeading5Bound
+	TokenTypeHeading6Bound
 	TokenTypeLineBreak
 	TokenTypeText
 	TokenTypeSpace
@@ -27,6 +33,12 @@ const (
 	TokenTypeUnderscore
 	TokenTypeUnderscoreDouble
 	TokenTypeUnderscoreTriple
+	TokenTypeHash
+	TokenTypeHashDouble
+	TokenTypeHashTriple
+	TokenTypeHashQuadruple
+	TokenTypeHashQuintuple
+	TokenTypeHashSextuple
 	TokenTypeHyphen
 	TokenTypeHyphenDouble
 	TokenTypeHyphenTriple
@@ -55,6 +67,18 @@ func (t TokenType) String() string {
 		return "DOC_BDY"
 	case TokenTypeParagraphBound:
 		return "PAR_BND"
+	case TokenTypeHeading1Bound:
+		return "HED_1_BND"
+	case TokenTypeHeading2Bound:
+		return "HED_2_BND"
+	case TokenTypeHeading3Bound:
+		return "HED_3_BND"
+	case TokenTypeHeading4Bound:
+		return "HED_4_BND"
+	case TokenTypeHeading5Bound:
+		return "HED_5_BND"
+	case TokenTypeHeading6Bound:
+		return "HED_6_BND"
 	case TokenTypeLineBreak:
 		return "LIN_BRK"
 	case TokenTypeText:
@@ -81,6 +105,18 @@ func (t TokenType) String() string {
 		return "UND_DUB"
 	case TokenTypeUnderscoreTriple:
 		return "UND_TRI"
+	case TokenTypeHash:
+		return "HSH"
+	case TokenTypeHashDouble:
+		return "HSH_DUB"
+	case TokenTypeHashTriple:
+		return "HSH_TRI"
+	case TokenTypeHashQuadruple:
+		return "HSH_QUA"
+	case TokenTypeHashQuintuple:
+		return "HSH_QUI"
+	case TokenTypeHashSextuple:
+		return "HSH_SXT"
 	case TokenTypeHyphen:
 		return "HYP"
 	case TokenTypeHyphenDouble:

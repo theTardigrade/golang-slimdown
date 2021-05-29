@@ -8,6 +8,7 @@ type Options struct {
 	EnableCodeTags            bool
 	EnableDocumentTags        bool
 	EnableEmTags              bool
+	EnableHeadings            bool
 	EnableHyphenTransforms    bool
 	EnableImages              bool
 	EnableLinks               bool

@@ -9,12 +9,14 @@ import (
 )
 
 func TestCompileString(t *testing.T) {
-	input, err := os.ReadFile(globalFilepath.Join("testAssets/input.md"))
+	const filePathPrefix = "testAssets/compileString"
+
+	input, err := os.ReadFile(globalFilepath.Join(filePathPrefix + "Input.md"))
 	if err != nil {
 		panic(err)
 	}
 
-	expectedOutput, err := os.ReadFile(globalFilepath.Join("testAssets/output.html"))
+	expectedOutput, err := os.ReadFile(globalFilepath.Join(filePathPrefix + "Output.html"))
 	if err != nil {
 		panic(err)
 	}
@@ -27,6 +29,7 @@ func TestCompileString(t *testing.T) {
 		EnableCodeTags:            true,
 		EnableDocumentTags:        false,
 		EnableEmTags:              true,
+		EnableHeadings:            true,
 		EnableHyphenTransforms:    true,
 		EnableImages:              true,
 		EnableLinks:               true,

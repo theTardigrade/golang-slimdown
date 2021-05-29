@@ -54,6 +54,24 @@ func (t *Token) Next() *Token {
 	}
 }
 
+func (t *Token) NextOfType(y TokenType) *Token {
+	if t == nil {
+		return nil
+	}
+
+	t2 := t
+
+	for {
+		if t2 = t2.RawNext; t2 == nil {
+			return nil
+		}
+
+		if t2.Type == y {
+			return t2
+		}
+	}
+}
+
 func (t *Token) PrevNCollection(n int) (prevs *TokenCollection, foundAll bool) {
 	if t == nil {
 		return
