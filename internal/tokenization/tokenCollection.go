@@ -34,7 +34,6 @@ func (c *TokenCollection) PushNew(y TokenType, InputStartIndex int, InputEndInde
 		Type:            y,
 		InputStartIndex: InputStartIndex,
 		InputEndIndex:   InputEndIndex,
-		Collection:      c,
 	}
 
 	c.Push(t)
@@ -60,8 +59,6 @@ func (c *TokenCollection) Push(tokens ...*Token) {
 
 		c.Data = append(c.Data, t)
 	}
-
-	return
 }
 
 func (c *TokenCollection) PushAsIs(tokens ...*Token) {
@@ -72,8 +69,6 @@ func (c *TokenCollection) PushAsIs(tokens ...*Token) {
 
 		c.Data = append(c.Data, t)
 	}
-
-	return
 }
 
 func (c *TokenCollection) Peek() *Token {
