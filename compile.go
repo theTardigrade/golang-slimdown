@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"sort"
 
+	"github.com/theTardigrade/golang-slimdown/internal/debug"
 	"github.com/theTardigrade/golang-slimdown/internal/tokenization"
 )
 
@@ -35,7 +36,7 @@ func Compile(input []byte, options *Options) (output template.HTML, err error) {
 	}
 
 	if options.DebugPrintTokens {
-		debugPrintTokens(tokens)
+		debug.PrintTokens(tokens)
 	}
 
 	err = compileGenerateHTML(options, tokens)
@@ -50,7 +51,7 @@ func Compile(input []byte, options *Options) (output template.HTML, err error) {
 	output = tokens.HTML()
 
 	if options.DebugPrintOutput {
-		debugPrintOutput(output)
+		debug.PrintOutput(output)
 	}
 
 	return
