@@ -21,6 +21,7 @@ var (
 		TokenTypeBlockquoteBound:   {Tags: []string{"blockquote", "p"}},
 		TokenTypeLineBreak:         {Tags: []string{"br"}, SelfClosing: true},
 		TokenTypeEqualsDouble:      {Tags: []string{"mark"}},
+		TokenTypeHorizontalRule:    {Tags: []string{"hr"}, SelfClosing: true},
 		TokenTypeAsterisk:          {Tags: []string{"em"}},
 		TokenTypeAsteriskDouble:    {Tags: []string{"strong"}},
 		TokenTypeAsteriskTriple:    {Tags: []string{"strong", "em"}},

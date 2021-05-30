@@ -27,6 +27,7 @@ const (
 	TokenTypeSpaceHair
 	TokenTypeTab
 	TokenTypeCarriageReturn
+	TokenTypeHorizontalRule
 	TokenTypeBackslash
 	TokenTypeAsterisk
 	TokenTypeAsteriskDouble
@@ -85,7 +86,7 @@ func (t TokenType) String() string {
 	case TokenTypeHeading6Bound:
 		return "HD6_BND"
 	case TokenTypeLineBreak:
-		return "LIN_BRK"
+		return "LBK"
 	case TokenTypeText:
 		return "TXT"
 	case TokenTypeSpace:
@@ -95,7 +96,9 @@ func (t TokenType) String() string {
 	case TokenTypeTab:
 		return "TAB"
 	case TokenTypeCarriageReturn:
-		return "CAR_RET"
+		return "CRT"
+	case TokenTypeHorizontalRule:
+		return "HRL"
 	case TokenTypeBackslash:
 		return "BKS"
 	case TokenTypeAsterisk:
@@ -137,15 +140,15 @@ func (t TokenType) String() string {
 	case TokenTypeExclamation:
 		return "EXL"
 	case TokenTypeGreaterThan:
-		return "GTR_THN"
+		return "GTR"
 	case TokenTypeParenthesisOpen:
 		return "PRN_OPN"
 	case TokenTypeParenthesisClose:
 		return "PRN_CLS"
 	case TokenTypeSquareBracketOpen:
-		return "SQU_BRK_OPN"
+		return "SBK_OPN"
 	case TokenTypeSquareBracketClose:
-		return "SQU_BRK_CLS"
+		return "SBK_CLS"
 	case TokenTypeLink:
 		return "LNK"
 	case TokenTypeImage:

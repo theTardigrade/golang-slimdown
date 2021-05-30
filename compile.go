@@ -438,7 +438,7 @@ func compileGenerateHTML(options *Options, tokens *tokenization.TokenCollection)
 func compileGenerateHTMLToken(options *Options, t *tokenization.Token, tokenStack *tokenization.TokenCollection) (err error) {
 	switch y := t.Type; y {
 	case tokenization.TokenTypeEmpty:
-		break
+		t.HTML = []byte{}
 	case tokenization.TokenTypeText:
 		compileGenerateHTMLTokenHandleBytes(t)
 
@@ -471,6 +471,22 @@ func compileGenerateHTMLToken(options *Options, t *tokenization.Token, tokenStac
 		tokenization.TokenTypeBlockquoteBound:
 		err = compileGenerateHTMLTokenHandleTag(t, tokenStack, options)
 	case tokenization.TokenTypeParagraphBound:
+		if options.EnableHorizontalRules {
+			if next := t.Next(); next != nil {
+				if next.Type == tokenization.TokenTypeAsteriskTriple ||
+					next.Type == tokenization.TokenTypeUnderscoreTriple {
+					if nextNext := next.Next(); nextNext != nil {
+						if nextNext.Type == tokenization.TokenTypeParagraphBound {
+							t.Type = tokenization.TokenTypeEmpty
+							next.Type = tokenization.TokenTypeHorizontalRule
+							nextNext.Type = tokenization.TokenTypeEmpty
+							break
+						}
+					}
+				}
+			}
+		}
+
 		if !options.EnableParagraphs {
 			t.HTML = []byte{'\n'}
 			break
@@ -779,6 +795,13 @@ func compileGenerateHTMLToken(options *Options, t *tokenization.Token, tokenStac
 		}
 
 		compileGenerateHTMLTokenHandleBytes(t)
+	case tokenization.TokenTypeHorizontalRule:
+		if !options.EnableHorizontalRules {
+			compileGenerateHTMLTokenHandleBytes(t)
+			break
+		}
+
+		err = compileGenerateHTMLTokenHandleTagFromSingleToken(t, tokenStack, options)
 	case tokenization.TokenTypeEqualsDouble:
 		if !options.EnableMarkTags {
 			compileGenerateHTMLTokenHandleBytes(t)

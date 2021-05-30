@@ -11,6 +11,7 @@ type Options struct {
 	EnableDocumentTags        bool
 	EnableEmTags              bool
 	EnableHeadings            bool
+	EnableHorizontalRules     bool
 	EnableHyphenTransforms    bool
 	EnableImages              bool
 	EnableLinks               bool
@@ -35,6 +36,8 @@ var (
 		EnableCodeTags:            false,
 		EnableDocumentTags:        false,
 		EnableEmTags:              true,
+		EnableHeadings:            false,
+		EnableHorizontalRules:     false,
 		EnableHyphenTransforms:    true,
 		EnableImages:              false,
 		EnableLinks:               true,
@@ -61,6 +64,8 @@ func (o *Options) Clone() *Options {
 		EnableDocumentTags:        o.EnableDocumentTags,
 		EnableEmTags:              o.EnableEmTags,
 		EnableHeadings:            o.EnableHeadings,
+		EnableHorizontalRules:     o.EnableHorizontalRules,
+		EnableHyphenTransforms:    o.EnableHyphenTransforms,
 		EnableImages:              o.EnableImages,
 		EnableLinks:               o.EnableLinks,
 		EnableParagraphs:          o.EnableParagraphs,

@@ -21,6 +21,7 @@ var (
 		EnableDocumentTags:        false,
 		EnableEmTags:              true,
 		EnableHeadings:            true,
+		EnableHorizontalRules:     true,
 		EnableHyphenTransforms:    true,
 		EnableImages:              true,
 		EnableLinks:               true,
