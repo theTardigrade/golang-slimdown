@@ -45,6 +45,7 @@ const (
 	TokenTypeHyphenTriple
 	TokenTypeEqualsDouble
 	TokenTypeBacktick
+	TokenTypeBacktickDouble
 	TokenTypeExclamation
 	TokenTypeGreaterThan
 	TokenTypeParenthesisOpen
@@ -130,7 +131,9 @@ func (t TokenType) String() string {
 	case TokenTypeEqualsDouble:
 		return "EQU_DUB"
 	case TokenTypeBacktick:
-		return "BAK_TIK"
+		return "BTK"
+	case TokenTypeBacktickDouble:
+		return "BTK_DUB"
 	case TokenTypeExclamation:
 		return "EXL"
 	case TokenTypeGreaterThan:

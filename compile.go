@@ -216,7 +216,24 @@ func compileTokenize(options *Options, tokens *tokenization.TokenCollection) (er
 				tokens.PushNewSingle(tokenization.TokenTypeText, i)
 			}
 		case '`':
-			tokens.PushNewSingle(tokenization.TokenTypeBacktick, i)
+			var match bool
+
+			if t := tokens.Peek(); t != nil {
+				switch match = true; t.Type {
+				case tokenization.TokenTypeBacktick:
+					t.Type = tokenization.TokenTypeBacktickDouble
+				default:
+					match = false
+				}
+
+				if match {
+					t.InputEndIndex++
+				}
+			}
+
+			if !match {
+				tokens.PushNewSingle(tokenization.TokenTypeBacktick, i)
+			}
 		case '!':
 			tokens.PushNewSingle(tokenization.TokenTypeExclamation, i)
 		case '\r':
@@ -660,6 +677,24 @@ func compileGenerateHTMLToken(options *Options, t *tokenization.Token, tokenStac
 					}
 				}
 			}
+		}
+	case tokenization.TokenTypeBacktickDouble:
+		var insideCode bool
+
+		if options.EnableCodeTags {
+			d := tokenStack.Data
+			for i := len(d) - 1; i >= 0; i-- {
+				if t2 := d[i]; t2.Type == tokenization.TokenTypeBacktick {
+					insideCode = true
+					break
+				}
+			}
+		}
+
+		t.HTML = []byte{'`'}
+
+		if !insideCode {
+			t.HTML = append(t.HTML, '`')
 		}
 	case tokenization.TokenTypeBacktick:
 		if !options.EnableCodeTags {
