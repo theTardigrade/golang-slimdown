@@ -14,7 +14,8 @@ const (
 )
 
 var (
-	debugTokenIndent int
+	debugTokenIntMaxLen int
+	debugTokenIndent    int
 )
 
 func init() {
@@ -25,8 +26,8 @@ func init() {
 
 		tt := tokenization.TokenType(i)
 		if tt.String() == "UNK" {
-			intMaxLen := len(strconv.Itoa(i))
-			debugTokenIndent = debugTokenMinIndent + intMaxLen
+			debugTokenIntMaxLen = len(strconv.Itoa(i))
+			debugTokenIndent = debugTokenMinIndent + debugTokenIntMaxLen
 			break
 		}
 	}
