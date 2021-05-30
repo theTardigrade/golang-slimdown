@@ -3,10 +3,34 @@ package slimdown
 import (
 	"fmt"
 	"html/template"
+	"strconv"
 	"strings"
 
 	"github.com/theTardigrade/golang-slimdown/internal/tokenization"
 )
+
+const (
+	debugTokenMinIndent = 4
+)
+
+var (
+	debugTokenIndent int
+)
+
+func init() {
+	var i int
+
+	for {
+		i++
+
+		tt := tokenization.TokenType(i)
+		if tt.String() == "UNK" {
+			intMaxLen := len(strconv.Itoa(i))
+			debugTokenIndent = debugTokenMinIndent + intMaxLen
+			break
+		}
+	}
+}
 
 func debugPrintTokens(tokens *tokenization.TokenCollection) {
 	var builder strings.Builder
@@ -17,7 +41,7 @@ func debugPrintTokens(tokens *tokenization.TokenCollection) {
 		}
 
 		builder.WriteString(
-			fmt.Sprintf("\t%[1]s(%[1]d)", t.Type),
+			fmt.Sprintf("%*[2]d:%[2]s", debugTokenIndent, t.Type),
 		)
 	}
 
