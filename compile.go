@@ -51,7 +51,7 @@ func Compile(input []byte, options *Options) (output template.HTML, err error) {
 
 func compileTokenize(options *Options, tokens *tokenization.TokenCollection) (err error) {
 	backslashTokens := tokenization.TokenCollectionNew(tokens.Input)
-	hashTokens := tokenization.TokenCollectionNew(tokens.Input)
+	headingTokens := tokenization.TokenCollectionNew(tokens.Input)
 
 	if options.EnableDocumentTags {
 		tokens.PushNewEmpty(tokenization.TokenTypeDocumentDoctype)
@@ -167,6 +167,10 @@ func compileTokenize(options *Options, tokens *tokenization.TokenCollection) (er
 			backslashTokens.PushAsIs(
 				tokens.PushNewSingle(tokenization.TokenTypeBackslash, i),
 			)
+		case '>':
+			headingTokens.PushAsIs(
+				tokens.PushNewSingle(tokenization.TokenTypeGreaterThan, i),
+			)
 		case '#':
 			var match bool
 
@@ -192,7 +196,7 @@ func compileTokenize(options *Options, tokens *tokenization.TokenCollection) (er
 			}
 
 			if !match {
-				hashTokens.PushAsIs(
+				headingTokens.PushAsIs(
 					tokens.PushNewSingle(tokenization.TokenTypeHash, i),
 				)
 			}
@@ -268,8 +272,8 @@ func compileTokenize(options *Options, tokens *tokenization.TokenCollection) (er
 		}
 	}
 
-	if options.EnableHeadings && hashTokens.Len() > 0 {
-		if err = compileTokenizeHashHeadings(hashTokens); err != nil {
+	if options.EnableHeadings && headingTokens.Len() > 0 {
+		if err = compileTokenizeHeadings(headingTokens); err != nil {
 			return
 		}
 	}
@@ -299,7 +303,7 @@ func compileTokenizeTransformNewLineBreak(t *tokenization.Token) {
 	}
 }
 
-func compileTokenizeHashHeadings(tokens *tokenization.TokenCollection) (err error) {
+func compileTokenizeHeadings(tokens *tokenization.TokenCollection) (err error) {
 	for _, t := range tokens.Data {
 		prevBound := t.Prev()
 
@@ -334,6 +338,8 @@ func compileTokenizeHashHeadings(tokens *tokenization.TokenCollection) (err erro
 			tt = tokenization.TokenTypeHeading5Bound
 		case tokenization.TokenTypeHashSextuple:
 			tt = tokenization.TokenTypeHeading6Bound
+		case tokenization.TokenTypeGreaterThan:
+			tt = tokenization.TokenTypeBlockquoteBound
 		default:
 			return ErrCompileTokenTypeUnknown
 		}
@@ -440,7 +446,12 @@ func compileGenerateHTMLToken(options *Options, t *tokenization.Token, tokenStac
 		tokenization.TokenTypeDocumentHeadBound,
 		tokenization.TokenTypeDocumentHTMLBound,
 		tokenization.TokenTypeHeading1Bound,
-		tokenization.TokenTypeHeading2Bound:
+		tokenization.TokenTypeHeading2Bound,
+		tokenization.TokenTypeHeading3Bound,
+		tokenization.TokenTypeHeading4Bound,
+		tokenization.TokenTypeHeading5Bound,
+		tokenization.TokenTypeHeading6Bound,
+		tokenization.TokenTypeBlockquoteBound:
 		err = compileGenerateHTMLTokenHandleTag(t, tokenStack, options)
 	case tokenization.TokenTypeParagraphBound:
 		if !options.EnableParagraphs {
@@ -628,6 +639,8 @@ func compileGenerateHTMLToken(options *Options, t *tokenization.Token, tokenStac
 		tokenization.TokenTypeHashQuintuple,
 		tokenization.TokenTypeHashSextuple:
 		compileGenerateHTMLTokenHandleBytes(t)
+	case tokenization.TokenTypeGreaterThan:
+		t.HTML = []byte{'&', 'g', 't', ';'}
 	case tokenization.TokenTypeTab:
 		t.HTML = []byte{'\t'}
 	case tokenization.TokenTypeCarriageReturn:

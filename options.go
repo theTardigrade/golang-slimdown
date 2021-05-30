@@ -6,6 +6,7 @@ type Options struct {
 	DebugPrintOutput          bool
 	DebugPrintTokens          bool
 	EnableBackslashTransforms bool
+	EnableBlockquotes         bool
 	EnableCodeTags            bool
 	EnableDocumentTags        bool
 	EnableEmTags              bool
@@ -30,6 +31,7 @@ var (
 		DebugPrintOutput:          false,
 		DebugPrintTokens:          false,
 		EnableBackslashTransforms: false,
+		EnableBlockquotes:         false,
 		EnableCodeTags:            false,
 		EnableDocumentTags:        false,
 		EnableEmTags:              true,
@@ -54,6 +56,7 @@ func (o *Options) Clone() *Options {
 		CleanEmptyTags:            o.CleanEmptyTags,
 		DebugPrintTokens:          o.DebugPrintTokens,
 		EnableBackslashTransforms: o.EnableBackslashTransforms,
+		EnableBlockquotes:         o.EnableBlockquotes,
 		EnableCodeTags:            o.EnableCodeTags,
 		EnableDocumentTags:        o.EnableDocumentTags,
 		EnableEmTags:              o.EnableEmTags,

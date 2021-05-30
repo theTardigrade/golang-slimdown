@@ -14,6 +14,7 @@ const (
 	TokenTypeDocumentHeadBound
 	TokenTypeDocumentBodyBound
 	TokenTypeParagraphBound
+	TokenTypeBlockquoteBound
 	TokenTypeHeading1Bound
 	TokenTypeHeading2Bound
 	TokenTypeHeading3Bound
@@ -45,6 +46,7 @@ const (
 	TokenTypeEqualsDouble
 	TokenTypeBacktick
 	TokenTypeExclamation
+	TokenTypeGreaterThan
 	TokenTypeParenthesisOpen
 	TokenTypeParenthesisClose
 	TokenTypeSquareBracketOpen
@@ -67,18 +69,20 @@ func (t TokenType) String() string {
 		return "DOC_BDY"
 	case TokenTypeParagraphBound:
 		return "PAR_BND"
+	case TokenTypeBlockquoteBound:
+		return "QUO_BND"
 	case TokenTypeHeading1Bound:
-		return "HED_1_BND"
+		return "HD1_BND"
 	case TokenTypeHeading2Bound:
-		return "HED_2_BND"
+		return "HD2_BND"
 	case TokenTypeHeading3Bound:
-		return "HED_3_BND"
+		return "HD3_BND"
 	case TokenTypeHeading4Bound:
-		return "HED_4_BND"
+		return "HD4_BND"
 	case TokenTypeHeading5Bound:
-		return "HED_5_BND"
+		return "HD5_BND"
 	case TokenTypeHeading6Bound:
-		return "HED_6_BND"
+		return "HD6_BND"
 	case TokenTypeLineBreak:
 		return "LIN_BRK"
 	case TokenTypeText:
@@ -129,6 +133,8 @@ func (t TokenType) String() string {
 		return "BAK_TIK"
 	case TokenTypeExclamation:
 		return "EXL"
+	case TokenTypeGreaterThan:
+		return "GTR_THN"
 	case TokenTypeParenthesisOpen:
 		return "PRN_OPN"
 	case TokenTypeParenthesisClose:

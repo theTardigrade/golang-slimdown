@@ -18,6 +18,7 @@ var (
 		TokenTypeHeading4Bound:     {Tags: []string{"h4"}},
 		TokenTypeHeading5Bound:     {Tags: []string{"h5"}},
 		TokenTypeHeading6Bound:     {Tags: []string{"h6"}},
+		TokenTypeBlockquoteBound:   {Tags: []string{"blockquote", "p"}},
 		TokenTypeLineBreak:         {Tags: []string{"br"}, SelfClosing: true},
 		TokenTypeEqualsDouble:      {Tags: []string{"mark"}},
 		TokenTypeAsterisk:          {Tags: []string{"em"}},
