@@ -11,32 +11,34 @@ import (
 )
 
 const (
-	debugTokenMinIndent = 4
+	debugPrintTokensMinIndent = 4
 )
 
 var (
-	debugTokenIntMaxLen           int
-	debugTokenIndent              int
-	debugTokenIndentCalculateOnce sync.Once
+	debugPrintTokensIntMaxLen           int
+	debugPrintTokensIndent              int
+	debugPrintTokensIndentCalculateOnce sync.Once
 )
 
-func debugTokenIndentCalculate() {
-	var i int
+func debugPrintTokensIndentCalculate() {
+	debugPrintTokensIndentCalculateOnce.Do(func() {
+		var i int
 
-	for {
-		i++
+		for {
+			i++
 
-		tt := tokenization.TokenType(i)
-		if tt.String() == "UNK" {
-			debugTokenIntMaxLen = len(strconv.Itoa(i - 1))
-			debugTokenIndent = debugTokenMinIndent + debugTokenIntMaxLen
-			break
+			tt := tokenization.TokenType(i)
+			if tt.String() == "UNK" {
+				debugPrintTokensIntMaxLen = len(strconv.Itoa(i - 1))
+				debugPrintTokensIndent = debugPrintTokensMinIndent + debugPrintTokensIntMaxLen
+				break
+			}
 		}
-	}
+	})
 }
 
 func debugPrintTokens(tokens *tokenization.TokenCollection) {
-	debugTokenIndentCalculateOnce.Do(debugTokenIndentCalculate)
+	debugPrintTokensIndentCalculate()
 
 	var builder strings.Builder
 
@@ -46,7 +48,7 @@ func debugPrintTokens(tokens *tokenization.TokenCollection) {
 		}
 
 		builder.WriteString(
-			fmt.Sprintf("%*[2]d:%[2]s", debugTokenIndent, t.Type),
+			fmt.Sprintf("%*[2]d:%[2]s", debugPrintTokensIndent, t.Type),
 		)
 	}
 
