@@ -28,6 +28,14 @@ var (
 		TokenTypeUnderscore,
 		TokenTypeUnderscoreDouble,
 	}
+	TokenTypeListLinkSegmentTitle = []TokenType{
+		TokenTypeText,
+		TokenTypeAsterisk,
+		TokenTypeAsteriskDouble,
+		TokenTypeUnderscore,
+		TokenTypeUnderscoreDouble,
+		TokenTypeSpace,
+	}
 )
 
 var (

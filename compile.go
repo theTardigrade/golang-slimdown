@@ -57,10 +57,25 @@ func Compile(input []byte, options *Options) (output template.HTML, err error) {
 }
 
 func compileTokenize(options *Options, tokens *tokenization.TokenCollection) (err error) {
-	backslashTokens := tokenization.TokenCollectionNew(tokens.Input)
-	headingTokens := tokenization.TokenCollectionNewEmpty()
-	linkTokens := tokenization.TokenCollectionNewEmpty()
-	imageTokens := tokenization.TokenCollectionNewEmpty()
+	var backslashTokens *tokenization.TokenCollection
+	if options.EnableBackslashTransforms {
+		backslashTokens = tokenization.TokenCollectionNew(tokens.Input)
+	}
+
+	var headingTokens *tokenization.TokenCollection
+	if options.EnableHeadings {
+		headingTokens = tokenization.TokenCollectionNewEmpty()
+	}
+
+	var linkTokens *tokenization.TokenCollection
+	if options.EnableLinks {
+		linkTokens = tokenization.TokenCollectionNewEmpty()
+	}
+
+	var imageTokens *tokenization.TokenCollection
+	if options.EnableImages {
+		imageTokens = tokenization.TokenCollectionNewEmpty()
+	}
 
 	if options.EnableDocumentTags {
 		tokens.PushNewEmpty(tokenization.TokenTypeDocumentDoctype)
@@ -171,9 +186,11 @@ func compileTokenize(options *Options, tokens *tokenization.TokenCollection) (er
 				tokens.PushNewSingle(tokenization.TokenTypeHyphen, i)
 			}
 		case '\\':
-			backslashTokens.PushAsIs(
-				tokens.PushNewSingle(tokenization.TokenTypeBackslash, i),
-			)
+			t := tokens.PushNewSingle(tokenization.TokenTypeBackslash, i)
+
+			if options.EnableBackslashTransforms {
+				backslashTokens.PushAsIs(t)
+			}
 		case '#':
 			var match bool
 
@@ -238,9 +255,11 @@ func compileTokenize(options *Options, tokens *tokenization.TokenCollection) (er
 				tokens.PushNewSingle(tokenization.TokenTypeBacktick, i)
 			}
 		case '!':
-			imageTokens.PushAsIs(
-				tokens.PushNewSingle(tokenization.TokenTypeExclamation, i),
-			)
+			t := tokens.PushNewSingle(tokenization.TokenTypeExclamation, i)
+
+			if options.EnableImages {
+				imageTokens.PushAsIs(t)
+			}
 		case '\r':
 			tokens.PushNewSingle(tokenization.TokenTypeCarriageReturn, i)
 		case '\n':
@@ -260,19 +279,25 @@ func compileTokenize(options *Options, tokens *tokenization.TokenCollection) (er
 		case ')':
 			tokens.PushNewSingle(tokenization.TokenTypeParenthesisClose, i)
 		case '[':
-			linkTokens.PushAsIs(
-				tokens.PushNewSingle(tokenization.TokenTypeSquareBracketOpen, i),
-			)
+			t := tokens.PushNewSingle(tokenization.TokenTypeSquareBracketOpen, i)
+
+			if options.EnableLinks {
+				linkTokens.PushAsIs(t)
+			}
 		case ']':
 			tokens.PushNewSingle(tokenization.TokenTypeSquareBracketClose, i)
 		case '<':
-			linkTokens.PushAsIs(
-				tokens.PushNewSingle(tokenization.TokenTypeAngleBracketOpen, i),
-			)
+			t := tokens.PushNewSingle(tokenization.TokenTypeAngleBracketOpen, i)
+
+			if options.EnableLinks {
+				linkTokens.PushAsIs(t)
+			}
 		case '>':
-			headingTokens.PushAsIs(
-				tokens.PushNewSingle(tokenization.TokenTypeAngleBracketClose, i),
-			)
+			t := tokens.PushNewSingle(tokenization.TokenTypeAngleBracketClose, i)
+
+			if options.EnableHeadings {
+				headingTokens.PushAsIs(t)
+			}
 		case ' ':
 			t := tokens.PushNewSingle(tokenization.TokenTypeSpace, i)
 
@@ -426,9 +451,10 @@ func compileTokenizeImages(tokens *tokenization.TokenCollection) (err error) {
 
 func compileTokenizeLinks(tokens *tokenization.TokenCollection) (err error) {
 	for _, t := range tokens.Data {
-		var textTokens, midTokens, linkTokens *tokenization.TokenCollection
-		var foundTextTokens, foundMidTokens, foundLinkTokens bool
+		var textTokens, midTokens, linkTokens, spaceTokens, titleTokens *tokenization.TokenCollection
+		var foundTextTokens, foundMidTokens, foundLinkTokens, foundSpaceTokens, foundTitleTokens bool
 		var finalToken *tokenization.Token
+		var expectedFinalTokenType tokenization.TokenType
 
 		switch t.Type {
 		case tokenization.TokenTypeSquareBracketOpen:
@@ -454,10 +480,7 @@ func compileTokenizeLinks(tokens *tokenization.TokenCollection) (err error) {
 				continue
 			}
 
-			finalToken = linkTokens.Get(-1).Next()
-			if finalToken == nil || finalToken.Type != tokenization.TokenTypeParenthesisClose {
-				continue
-			}
+			expectedFinalTokenType = tokenization.TokenTypeParenthesisClose
 		case tokenization.TokenTypeAngleBracketOpen:
 			linkTokens, foundLinkTokens = t.NextsCollectionUntilEndOfPotentialTypes(
 				tokenization.TokenTypeListLinkSegmentLink...,
@@ -466,12 +489,32 @@ func compileTokenizeLinks(tokens *tokenization.TokenCollection) (err error) {
 				continue
 			}
 
-			finalToken = linkTokens.Get(-1).Next()
-			if finalToken == nil || finalToken.Type != tokenization.TokenTypeAngleBracketClose {
-				continue
-			}
+			expectedFinalTokenType = tokenization.TokenTypeAngleBracketClose
 		default:
 			continue
+		}
+
+		{
+			lastLinkToken := linkTokens.Get(-1)
+			spaceTokens, foundSpaceTokens = lastLinkToken.NextsCollectionUntilEndOfPotentialTypes(
+				tokenization.TokenTypeSpace,
+			)
+			if foundSpaceTokens {
+				titleTokens, foundTitleTokens = spaceTokens.Get(-1).NextsCollectionUntilEndOfPotentialTypes(
+					tokenization.TokenTypeListLinkSegmentTitle...,
+				)
+				if !foundTitleTokens {
+					continue
+				}
+
+				finalToken = titleTokens.Get(-1).Next()
+			} else {
+				finalToken = lastLinkToken.Next()
+			}
+
+			if finalToken == nil || finalToken.Type != expectedFinalTokenType {
+				continue
+			}
 		}
 
 		var linkBuff bytes.Buffer
@@ -491,12 +534,32 @@ func compileTokenizeLinks(tokens *tokenization.TokenCollection) (err error) {
 		t.Type = tokenization.TokenTypeLink
 		t.Attributes = map[string]string{"href": linkString}
 
+		if foundTitleTokens {
+			var titleBuff bytes.Buffer
+
+			for _, t2 := range titleTokens.Data {
+				titleBuff.Write(t2.Bytes())
+			}
+
+			titleString := titleBuff.String()
+
+			t.Attributes["title"] = titleString
+		}
+
 		if foundTextTokens {
 			linkTokens.SetAllTokensToEmptyType()
 		}
 
 		if foundMidTokens {
 			midTokens.SetAllTokensToEmptyType()
+		}
+
+		if foundSpaceTokens {
+			spaceTokens.SetAllTokensToEmptyType()
+		}
+
+		if foundTitleTokens {
+			titleTokens.SetAllTokensToEmptyType()
 		}
 
 		finalToken.Type = tokenization.TokenTypeLink
@@ -620,7 +683,7 @@ func compileGenerateHTML(options *Options, tokens *tokenization.TokenCollection)
 func compileGenerateHTMLToken(options *Options, t *tokenization.Token, tokenStack *tokenization.TokenCollection) (err error) {
 	switch y := t.Type; y {
 	case tokenization.TokenTypeEmpty:
-		t.HTML = []byte{}
+		break
 	case tokenization.TokenTypeText:
 		compileGenerateHTMLTokenHandleBytes(t)
 
