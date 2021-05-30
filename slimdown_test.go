@@ -1,11 +1,19 @@
 package slimdown
 
 import (
+	"sync"
+
 	globalFilepath "github.com/theTardigrade/golang-globalFilepath"
 )
 
+var (
+	testInitOnce sync.Once
+)
+
 func testInit() {
-	if err := globalFilepath.Init(); err != nil {
-		panic(err)
-	}
+	testInitOnce.Do(func() {
+		if err := globalFilepath.Init(); err != nil {
+			panic(err)
+		}
+	})
 }
