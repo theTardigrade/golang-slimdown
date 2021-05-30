@@ -6,7 +6,6 @@ import (
 	"html/template"
 	"net/url"
 	"sort"
-	"strings"
 
 	"github.com/theTardigrade/golang-slimdown/internal/tokenization"
 )
@@ -60,6 +59,7 @@ func Compile(input []byte, options *Options) (output template.HTML, err error) {
 func compileTokenize(options *Options, tokens *tokenization.TokenCollection) (err error) {
 	backslashTokens := tokenization.TokenCollectionNew(tokens.Input)
 	headingTokens := tokenization.TokenCollectionNew(tokens.Input)
+	linkTokens := tokenization.TokenCollectionNew(tokens.Input)
 
 	if options.EnableDocumentTags {
 		tokens.PushNewEmpty(tokenization.TokenTypeDocumentDoctype)
@@ -173,10 +173,6 @@ func compileTokenize(options *Options, tokens *tokenization.TokenCollection) (er
 			backslashTokens.PushAsIs(
 				tokens.PushNewSingle(tokenization.TokenTypeBackslash, i),
 			)
-		case '>':
-			headingTokens.PushAsIs(
-				tokens.PushNewSingle(tokenization.TokenTypeGreaterThan, i),
-			)
 		case '#':
 			var match bool
 
@@ -261,9 +257,19 @@ func compileTokenize(options *Options, tokens *tokenization.TokenCollection) (er
 		case ')':
 			tokens.PushNewSingle(tokenization.TokenTypeParenthesisClose, i)
 		case '[':
-			tokens.PushNewSingle(tokenization.TokenTypeSquareBracketOpen, i)
+			linkTokens.PushAsIs(
+				tokens.PushNewSingle(tokenization.TokenTypeSquareBracketOpen, i),
+			)
 		case ']':
 			tokens.PushNewSingle(tokenization.TokenTypeSquareBracketClose, i)
+		case '<':
+			linkTokens.PushAsIs(
+				tokens.PushNewSingle(tokenization.TokenTypeAngleBracketOpen, i),
+			)
+		case '>':
+			headingTokens.PushAsIs(
+				tokens.PushNewSingle(tokenization.TokenTypeAngleBracketClose, i),
+			)
 		case ' ':
 			t := tokens.PushNewSingle(tokenization.TokenTypeSpace, i)
 
@@ -292,6 +298,14 @@ func compileTokenize(options *Options, tokens *tokenization.TokenCollection) (er
 			} else {
 				tokens.PushNewSingle(tokenization.TokenTypeText, i)
 			}
+		}
+	}
+
+	// TODO: TOKENIZE IMAGES HERE
+
+	if options.EnableLinks && linkTokens.Len() > 0 {
+		if err = compileTokenizeLinks(linkTokens); err != nil {
+			return
 		}
 	}
 
@@ -324,6 +338,88 @@ func compileTokenizeTransformNewLineBreak(t *tokenization.Token) {
 			}
 		}
 	}
+}
+
+func compileTokenizeLinks(tokens *tokenization.TokenCollection) (err error) {
+	for _, t := range tokens.Data {
+		var textTokens, midTokens, linkTokens *tokenization.TokenCollection
+		var foundTextTokens, foundMidTokens, foundLinkTokens bool
+		var finalToken *tokenization.Token
+
+		switch t.Type {
+		case tokenization.TokenTypeSquareBracketOpen:
+			textTokens, foundTextTokens = t.NextsCollectionUntilEndOfPotentialTypes(
+				tokenization.TokenTypeListLinkSegmentText...,
+			)
+			if !foundTextTokens {
+				continue
+			}
+
+			midTokens, foundMidTokens = textTokens.Get(-1).NextNTypesCollection([]tokenization.TokenType{
+				tokenization.TokenTypeSquareBracketClose,
+				tokenization.TokenTypeParenthesisOpen,
+			})
+			if !foundMidTokens {
+				continue
+			}
+
+			linkTokens, foundLinkTokens = midTokens.Get(-1).NextsCollectionUntilEndOfPotentialTypes(
+				tokenization.TokenTypeListLinkSegmentLink...,
+			)
+			if !foundLinkTokens {
+				continue
+			}
+
+			finalToken = linkTokens.Get(-1).Next()
+			if finalToken == nil || finalToken.Type != tokenization.TokenTypeParenthesisClose {
+				continue
+			}
+		case tokenization.TokenTypeAngleBracketOpen:
+			linkTokens, foundLinkTokens = t.NextsCollectionUntilEndOfPotentialTypes(
+				tokenization.TokenTypeListLinkSegmentLink...,
+			)
+			if !foundLinkTokens {
+				continue
+			}
+
+			finalToken = linkTokens.Get(-1).Next()
+			if finalToken == nil || finalToken.Type != tokenization.TokenTypeAngleBracketClose {
+				continue
+			}
+		default:
+			err = ErrCompileTokenTypeUnknown
+			return
+		}
+
+		var linkBuff bytes.Buffer
+
+		for _, t2 := range linkTokens.Data {
+			linkBuff.Write(t2.Bytes())
+		}
+
+		linkString := linkBuff.String()
+
+		linkURL, err2 := url.Parse(linkString)
+		if err2 != nil {
+			continue
+		}
+		linkString = linkURL.String()
+
+		t.Type = tokenization.TokenTypeLink
+		t.Attributes = map[string]string{"href": linkString}
+
+		if foundTextTokens {
+			linkTokens.SetAllTokensToEmptyType()
+		}
+
+		if foundMidTokens {
+			midTokens.SetAllTokensToEmptyType()
+		}
+
+		finalToken.Type = tokenization.TokenTypeLink
+	}
+
+	return
 }
 
 func compileTokenizeHeadings(tokens *tokenization.TokenCollection) (err error) {
@@ -361,10 +457,11 @@ func compileTokenizeHeadings(tokens *tokenization.TokenCollection) (err error) {
 			tt = tokenization.TokenTypeHeading5Bound
 		case tokenization.TokenTypeHashSextuple:
 			tt = tokenization.TokenTypeHeading6Bound
-		case tokenization.TokenTypeGreaterThan:
+		case tokenization.TokenTypeAngleBracketClose:
 			tt = tokenization.TokenTypeBlockquoteBound
 		default:
-			return ErrCompileTokenTypeUnknown
+			err = ErrCompileTokenTypeUnknown
+			return
 		}
 
 		prevBound.Type = tt
@@ -376,7 +473,7 @@ func compileTokenizeHeadings(tokens *tokenization.TokenCollection) (err error) {
 		t.Type = tt
 	}
 
-	return nil
+	return
 }
 
 func compileTokenizeBackslashTransforms(tokens *tokenization.TokenCollection) (err error) {
@@ -598,82 +695,10 @@ func compileGenerateHTMLToken(options *Options, t *tokenization.Token, tokenStac
 		if err = compileGenerateHTMLToken(options, t, tokenStack); err != nil {
 			return
 		}
-	case tokenization.TokenTypeSquareBracketOpen:
-		if !options.EnableLinks {
-			compileGenerateHTMLTokenHandleBytes(t)
-			break
-		}
-
-		textTokens, foundTextTokens := t.NextsCollectionUntilEndOfPotentialTypes(
-			tokenization.TokenTypeListLinkSegmentText...,
-		)
-		if !foundTextTokens {
-			compileGenerateHTMLTokenHandleBytes(t)
-			break
-		}
-
-		midTokens, foundMidTokens := textTokens.Get(-1).NextNTypesCollection([]tokenization.TokenType{
-			tokenization.TokenTypeSquareBracketClose,
-			tokenization.TokenTypeParenthesisOpen,
-		})
-		if !foundMidTokens {
-			compileGenerateHTMLTokenHandleBytes(t)
-			break
-		}
-
-		linkTokens, foundLinkTokens := midTokens.Get(-1).NextsCollectionUntilEndOfPotentialTypes(
-			tokenization.TokenTypeListLinkSegmentLink...,
-		)
-		if !foundLinkTokens {
-			compileGenerateHTMLTokenHandleBytes(t)
-			break
-		}
-
-		finalToken := linkTokens.Get(-1).Next()
-		if finalToken == nil || finalToken.Type != tokenization.TokenTypeParenthesisClose {
-			compileGenerateHTMLTokenHandleBytes(t)
-			break
-		}
-
-		var linkBuff bytes.Buffer
-
-		for _, t2 := range linkTokens.Data {
-			linkBuff.Write(t2.Bytes())
-		}
-
-		linkString := linkBuff.String()
-
-		var linkURL *url.URL
-		linkURL, err = url.Parse(linkString)
-		if err != nil {
-			compileGenerateHTMLTokenHandleBytes(t)
-			break
-		}
-
-		linkString = linkURL.String()
-		if strings.Contains(linkString, `"`) {
-			compileGenerateHTMLTokenHandleBytes(t)
-			break
-		}
-
-		t.Type = tokenization.TokenTypeLink
-		t.Attributes = map[string]string{"href": linkString}
-
-		midTokens.Data[0].Type = tokenization.TokenTypeLink
-		midTokens.Data[1].Type = tokenization.TokenTypeEmpty
-
-		for _, t2 := range linkTokens.Data {
-			t2.Type = tokenization.TokenTypeEmpty
-		}
-
-		finalToken.Type = tokenization.TokenTypeEmpty
-
-		if err = compileGenerateHTMLToken(options, t, tokenStack); err != nil {
-			return
-		}
 	case tokenization.TokenTypeBackslash,
 		tokenization.TokenTypeParenthesisOpen,
 		tokenization.TokenTypeParenthesisClose,
+		tokenization.TokenTypeSquareBracketOpen,
 		tokenization.TokenTypeSquareBracketClose,
 		tokenization.TokenTypeHash,
 		tokenization.TokenTypeHashDouble,
@@ -682,7 +707,9 @@ func compileGenerateHTMLToken(options *Options, t *tokenization.Token, tokenStac
 		tokenization.TokenTypeHashQuintuple,
 		tokenization.TokenTypeHashSextuple:
 		compileGenerateHTMLTokenHandleBytes(t)
-	case tokenization.TokenTypeGreaterThan:
+	case tokenization.TokenTypeAngleBracketOpen:
+		t.HTML = []byte{'&', 'l', 't', ';'}
+	case tokenization.TokenTypeAngleBracketClose:
 		t.HTML = []byte{'&', 'g', 't', ';'}
 	case tokenization.TokenTypeTab:
 		t.HTML = []byte{'\t'}

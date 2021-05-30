@@ -48,11 +48,12 @@ const (
 	TokenTypeBacktick
 	TokenTypeBacktickDouble
 	TokenTypeExclamation
-	TokenTypeGreaterThan
 	TokenTypeParenthesisOpen
 	TokenTypeParenthesisClose
 	TokenTypeSquareBracketOpen
 	TokenTypeSquareBracketClose
+	TokenTypeAngleBracketOpen
+	TokenTypeAngleBracketClose
 	TokenTypeLink
 	TokenTypeImage
 )
@@ -139,8 +140,6 @@ func (t TokenType) String() string {
 		return "BTK_DUB"
 	case TokenTypeExclamation:
 		return "EXL"
-	case TokenTypeGreaterThan:
-		return "GTR"
 	case TokenTypeParenthesisOpen:
 		return "PRN_OPN"
 	case TokenTypeParenthesisClose:
@@ -149,6 +148,10 @@ func (t TokenType) String() string {
 		return "SBK_OPN"
 	case TokenTypeSquareBracketClose:
 		return "SBK_CLS"
+	case TokenTypeAngleBracketOpen:
+		return "ABK_OPN"
+	case TokenTypeAngleBracketClose:
+		return "ABK_CLS"
 	case TokenTypeLink:
 		return "LNK"
 	case TokenTypeImage:
