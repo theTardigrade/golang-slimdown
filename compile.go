@@ -26,7 +26,7 @@ func Compile(input []byte, options *Options) (output template.HTML, err error) {
 	tokens := tokenization.TokenCollectionNew(input)
 
 	if options == nil || options == &DefaultOptions {
-		options = DefaultOptions.Clone()
+		options = DefaultOptions.clone()
 	}
 
 	err = compileTokenize(options, tokens)

@@ -13,7 +13,7 @@ var (
 		AllowHTML:                 false,
 		CleanEmptyTags:            false,
 		DebugPrintOutput:          false,
-		DebugPrintTokens:          false,
+		DebugPrintTokens:          true,
 		EnableBackslashTransforms: true,
 		EnableBlockquotes:         true,
 		EnableCodeTags:            true,

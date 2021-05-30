@@ -49,7 +49,7 @@ var (
 	}
 )
 
-func (o *Options) Clone() *Options {
+func (o *Options) clone() *Options {
 	if o.isCloned {
 		return o
 	}
