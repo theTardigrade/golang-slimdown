@@ -13,11 +13,11 @@ func debugPrintTokens(tokens *tokenization.TokenCollection) {
 
 	for i, t := range tokens.Data {
 		if i > 0 {
-			builder.WriteByte(' ')
+			builder.WriteByte('\n')
 		}
 
 		builder.WriteString(
-			fmt.Sprintf("%[1]s(%[1]d)", t.Type),
+			fmt.Sprintf("\t%[1]s(%[1]d)", t.Type),
 		)
 	}
 
