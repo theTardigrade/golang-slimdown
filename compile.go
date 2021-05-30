@@ -405,7 +405,27 @@ func compileTokenizeImages(tokens *tokenization.TokenCollection) (err error) {
 			continue
 		}
 
-		finalToken := linkTokens.Get(-1).Next()
+		lastLinkToken := linkTokens.Get(-1)
+		var finalToken *tokenization.Token
+		var titleTokens *tokenization.TokenCollection
+
+		spaceTokens, foundSpaceTokens := lastLinkToken.NextsCollectionUntilEndOfPotentialTypes(
+			tokenization.TokenTypeSpace,
+		)
+		if foundSpaceTokens {
+			var foundTitleTokens bool
+			titleTokens, foundTitleTokens = spaceTokens.Get(-1).NextsCollectionUntilEndOfPotentialTypes(
+				tokenization.TokenTypeListImageSegmentTitle...,
+			)
+			if !foundTitleTokens {
+				continue
+			}
+
+			finalToken = titleTokens.Get(-1).Next()
+		} else {
+			finalToken = lastLinkToken.Next()
+		}
+
 		if finalToken == nil || finalToken.Type != tokenization.TokenTypeParenthesisClose {
 			continue
 		}
@@ -437,11 +457,26 @@ func compileTokenizeImages(tokens *tokenization.TokenCollection) (err error) {
 			"src": linkString,
 		}
 
-		squareBracketOpenToken.Type = tokenization.TokenTypeImage
+		if foundSpaceTokens {
+			var titleBuff bytes.Buffer
+
+			for _, t2 := range titleTokens.Data {
+				titleBuff.Write(t2.Bytes())
+			}
+
+			titleString := titleBuff.String()
+
+			t.Attributes["title"] = titleString
+
+			spaceTokens.SetAllTokensToEmptyType()
+			titleTokens.SetAllTokensToEmptyType()
+		}
 
 		textTokens.SetAllTokensToEmptyType()
 		midTokens.SetAllTokensToEmptyType()
 		linkTokens.SetAllTokensToEmptyType()
+
+		squareBracketOpenToken.Type = tokenization.TokenTypeImage
 
 		finalToken.Type = tokenization.TokenTypeEmpty
 	}
@@ -452,7 +487,7 @@ func compileTokenizeImages(tokens *tokenization.TokenCollection) (err error) {
 func compileTokenizeLinks(tokens *tokenization.TokenCollection) (err error) {
 	for _, t := range tokens.Data {
 		var textTokens, midTokens, linkTokens, spaceTokens, titleTokens *tokenization.TokenCollection
-		var foundTextTokens, foundMidTokens, foundLinkTokens, foundSpaceTokens, foundTitleTokens bool
+		var foundTextTokens, foundMidTokens, foundLinkTokens, foundSpaceTokens bool
 		var finalToken *tokenization.Token
 		var expectedFinalTokenType tokenization.TokenType
 
@@ -500,6 +535,7 @@ func compileTokenizeLinks(tokens *tokenization.TokenCollection) (err error) {
 				tokenization.TokenTypeSpace,
 			)
 			if foundSpaceTokens {
+				var foundTitleTokens bool
 				titleTokens, foundTitleTokens = spaceTokens.Get(-1).NextsCollectionUntilEndOfPotentialTypes(
 					tokenization.TokenTypeListLinkSegmentTitle...,
 				)
@@ -534,7 +570,7 @@ func compileTokenizeLinks(tokens *tokenization.TokenCollection) (err error) {
 		t.Type = tokenization.TokenTypeLink
 		t.Attributes = map[string]string{"href": linkString}
 
-		if foundTitleTokens {
+		if foundSpaceTokens {
 			var titleBuff bytes.Buffer
 
 			for _, t2 := range titleTokens.Data {
@@ -544,22 +580,17 @@ func compileTokenizeLinks(tokens *tokenization.TokenCollection) (err error) {
 			titleString := titleBuff.String()
 
 			t.Attributes["title"] = titleString
+
+			spaceTokens.SetAllTokensToEmptyType()
+			titleTokens.SetAllTokensToEmptyType()
 		}
 
 		if foundTextTokens {
-			linkTokens.SetAllTokensToEmptyType()
+			textTokens.SetAllTokensToEmptyType()
 		}
 
 		if foundMidTokens {
 			midTokens.SetAllTokensToEmptyType()
-		}
-
-		if foundSpaceTokens {
-			spaceTokens.SetAllTokensToEmptyType()
-		}
-
-		if foundTitleTokens {
-			titleTokens.SetAllTokensToEmptyType()
 		}
 
 		finalToken.Type = tokenization.TokenTypeLink

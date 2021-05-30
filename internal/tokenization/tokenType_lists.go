@@ -39,6 +39,7 @@ var (
 )
 
 var (
-	TokenTypeListImageSegmentText = TokenTypeListLinkSegmentText[:]
-	TokenTypeListImageSegmentLink = TokenTypeListLinkSegmentLink[:]
+	TokenTypeListImageSegmentText  = TokenTypeListLinkSegmentText[:]
+	TokenTypeListImageSegmentLink  = TokenTypeListLinkSegmentLink[:]
+	TokenTypeListImageSegmentTitle = TokenTypeListLinkSegmentTitle[:]
 )
