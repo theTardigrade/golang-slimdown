@@ -58,8 +58,9 @@ func Compile(input []byte, options *Options) (output template.HTML, err error) {
 
 func compileTokenize(options *Options, tokens *tokenization.TokenCollection) (err error) {
 	backslashTokens := tokenization.TokenCollectionNew(tokens.Input)
-	headingTokens := tokenization.TokenCollectionNew(tokens.Input)
-	linkTokens := tokenization.TokenCollectionNew(tokens.Input)
+	headingTokens := tokenization.TokenCollectionNewEmpty()
+	linkTokens := tokenization.TokenCollectionNewEmpty()
+	imageTokens := tokenization.TokenCollectionNewEmpty()
 
 	if options.EnableDocumentTags {
 		tokens.PushNewEmpty(tokenization.TokenTypeDocumentDoctype)
@@ -237,7 +238,9 @@ func compileTokenize(options *Options, tokens *tokenization.TokenCollection) (er
 				tokens.PushNewSingle(tokenization.TokenTypeBacktick, i)
 			}
 		case '!':
-			tokens.PushNewSingle(tokenization.TokenTypeExclamation, i)
+			imageTokens.PushAsIs(
+				tokens.PushNewSingle(tokenization.TokenTypeExclamation, i),
+			)
 		case '\r':
 			tokens.PushNewSingle(tokenization.TokenTypeCarriageReturn, i)
 		case '\n':
@@ -301,7 +304,11 @@ func compileTokenize(options *Options, tokens *tokenization.TokenCollection) (er
 		}
 	}
 
-	// TODO: TOKENIZE IMAGES HERE
+	if options.EnableImages && imageTokens.Len() > 0 {
+		if err = compileTokenizeImages(imageTokens); err != nil {
+			return
+		}
+	}
 
 	if options.EnableLinks && linkTokens.Len() > 0 {
 		if err = compileTokenizeLinks(linkTokens); err != nil {
@@ -338,6 +345,83 @@ func compileTokenizeTransformNewLineBreak(t *tokenization.Token) {
 			}
 		}
 	}
+}
+
+func compileTokenizeImages(tokens *tokenization.TokenCollection) (err error) {
+	for _, t := range tokens.Data {
+		if t.Type != tokenization.TokenTypeExclamation {
+			continue
+		}
+
+		squareBracketOpenToken := t.Next()
+		if squareBracketOpenToken == nil || squareBracketOpenToken.Type != tokenization.TokenTypeSquareBracketOpen {
+			continue
+		}
+
+		textTokens, foundTextTokens := squareBracketOpenToken.NextsCollectionUntilEndOfPotentialTypes(
+			tokenization.TokenTypeListImageSegmentText...,
+		)
+		if !foundTextTokens {
+			continue
+		}
+
+		midTokens, foundMidTokens := textTokens.Get(-1).NextNTypesCollection([]tokenization.TokenType{
+			tokenization.TokenTypeSquareBracketClose,
+			tokenization.TokenTypeParenthesisOpen,
+		})
+		if !foundMidTokens {
+			continue
+		}
+
+		linkTokens, foundLinkTokens := midTokens.Get(-1).NextsCollectionUntilEndOfPotentialTypes(
+			tokenization.TokenTypeListImageSegmentLink...,
+		)
+		if !foundLinkTokens {
+			continue
+		}
+
+		finalToken := linkTokens.Get(-1).Next()
+		if finalToken == nil || finalToken.Type != tokenization.TokenTypeParenthesisClose {
+			continue
+		}
+
+		var linkBuff, textBuff bytes.Buffer
+
+		for _, t2 := range linkTokens.Data {
+			linkBuff.Write(t2.Bytes())
+		}
+		for _, t2 := range textTokens.Data {
+			textBuff.Write(t2.Bytes())
+		}
+
+		linkString := linkBuff.String()
+		textString := textBuff.String()
+
+		var linkURL *url.URL
+		linkURL, err = url.Parse(linkString)
+		if err != nil {
+			continue
+		}
+
+		linkString = linkURL.String()
+		textString = html.EscapeString(textString)
+
+		t.Type = tokenization.TokenTypeImage
+		t.Attributes = map[string]string{
+			"alt": textString,
+			"src": linkString,
+		}
+
+		squareBracketOpenToken.Type = tokenization.TokenTypeImage
+
+		textTokens.SetAllTokensToEmptyType()
+		midTokens.SetAllTokensToEmptyType()
+		linkTokens.SetAllTokensToEmptyType()
+
+		finalToken.Type = tokenization.TokenTypeEmpty
+	}
+
+	return
 }
 
 func compileTokenizeLinks(tokens *tokenization.TokenCollection) (err error) {
@@ -387,8 +471,7 @@ func compileTokenizeLinks(tokens *tokenization.TokenCollection) (err error) {
 				continue
 			}
 		default:
-			err = ErrCompileTokenTypeUnknown
-			return
+			continue
 		}
 
 		var linkBuff bytes.Buffer
@@ -425,19 +508,16 @@ func compileTokenizeLinks(tokens *tokenization.TokenCollection) (err error) {
 func compileTokenizeHeadings(tokens *tokenization.TokenCollection) (err error) {
 	for _, t := range tokens.Data {
 		prevBound := t.Prev()
-
 		if prevBound == nil || prevBound.Type != tokenization.TokenTypeParagraphBound {
 			continue
 		}
 
 		nextSpace := t.Next()
-
 		if nextSpace == nil || nextSpace.Type != tokenization.TokenTypeSpace {
 			continue
 		}
 
 		nextBound := t.NextOfType(tokenization.TokenTypeParagraphBound)
-
 		if nextBound == nil {
 			continue
 		}
@@ -460,8 +540,7 @@ func compileTokenizeHeadings(tokens *tokenization.TokenCollection) (err error) {
 		case tokenization.TokenTypeAngleBracketClose:
 			tt = tokenization.TokenTypeBlockquoteBound
 		default:
-			err = ErrCompileTokenTypeUnknown
-			return
+			continue
 		}
 
 		prevBound.Type = tt
@@ -607,99 +686,12 @@ func compileGenerateHTMLToken(options *Options, t *tokenization.Token, tokenStac
 		}
 
 		err = compileGenerateHTMLTokenHandleTagFromSingleToken(t, tokenStack, options)
-	case tokenization.TokenTypeExclamation:
-		if !options.EnableImages {
-			compileGenerateHTMLTokenHandleBytes(t)
-			break
-		}
-
-		squareBracketOpenToken := t.Next()
-		if squareBracketOpenToken == nil || squareBracketOpenToken.Type != tokenization.TokenTypeSquareBracketOpen {
-			compileGenerateHTMLTokenHandleBytes(t)
-			break
-		}
-
-		textTokens, foundTextTokens := squareBracketOpenToken.NextsCollectionUntilEndOfPotentialTypes(
-			tokenization.TokenTypeListImageSegmentText...,
-		)
-		if !foundTextTokens {
-			compileGenerateHTMLTokenHandleBytes(t)
-			break
-		}
-
-		midTokens, foundMidTokens := textTokens.Get(-1).NextNTypesCollection([]tokenization.TokenType{
-			tokenization.TokenTypeSquareBracketClose,
-			tokenization.TokenTypeParenthesisOpen,
-		})
-		if !foundMidTokens {
-			compileGenerateHTMLTokenHandleBytes(t)
-			break
-		}
-
-		linkTokens, foundLinkTokens := midTokens.Get(-1).NextsCollectionUntilEndOfPotentialTypes(
-			tokenization.TokenTypeListImageSegmentLink...,
-		)
-		if !foundLinkTokens {
-			compileGenerateHTMLTokenHandleBytes(t)
-			break
-		}
-
-		finalToken := linkTokens.Get(-1).Next()
-		if finalToken == nil || finalToken.Type != tokenization.TokenTypeParenthesisClose {
-			compileGenerateHTMLTokenHandleBytes(t)
-			break
-		}
-
-		var linkBuff, textBuff bytes.Buffer
-
-		for _, t2 := range linkTokens.Data {
-			linkBuff.Write(t2.Bytes())
-		}
-		for _, t2 := range textTokens.Data {
-			textBuff.Write(t2.Bytes())
-		}
-
-		linkString := linkBuff.String()
-		textString := textBuff.String()
-
-		var linkURL *url.URL
-		linkURL, err = url.Parse(linkString)
-		if err != nil {
-			compileGenerateHTMLTokenHandleBytes(t)
-			break
-		}
-
-		linkString = linkURL.String()
-		textString = html.EscapeString(textString)
-
-		t.Type = tokenization.TokenTypeImage
-		t.Attributes = map[string]string{
-			"alt": textString,
-			"src": linkString,
-		}
-
-		squareBracketOpenToken.Type = tokenization.TokenTypeImage
-
-		for _, t2 := range textTokens.Data {
-			t2.Type = tokenization.TokenTypeEmpty
-		}
-		for _, t2 := range midTokens.Data {
-			t2.Type = tokenization.TokenTypeEmpty
-		}
-		for _, t2 := range linkTokens.Data {
-			t2.Type = tokenization.TokenTypeEmpty
-		}
-
-		finalToken.Type = tokenization.TokenTypeEmpty
-
-		if err = compileGenerateHTMLToken(options, t, tokenStack); err != nil {
-			return
-		}
 	case tokenization.TokenTypeBackslash,
 		tokenization.TokenTypeParenthesisOpen,
 		tokenization.TokenTypeParenthesisClose,
 		tokenization.TokenTypeSquareBracketOpen,
 		tokenization.TokenTypeSquareBracketClose,
+		tokenization.TokenTypeExclamation,
 		tokenization.TokenTypeHash,
 		tokenization.TokenTypeHashDouble,
 		tokenization.TokenTypeHashTriple,
