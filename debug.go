@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/theTardigrade/golang-slimdown/internal/tokenization"
 )
@@ -14,11 +15,12 @@ const (
 )
 
 var (
-	debugTokenIntMaxLen int
-	debugTokenIndent    int
+	debugTokenIntMaxLen           int
+	debugTokenIndent              int
+	debugTokenIndentCalculateOnce sync.Once
 )
 
-func init() {
+func debugTokenIndentCalculate() {
 	var i int
 
 	for {
@@ -34,6 +36,8 @@ func init() {
 }
 
 func debugPrintTokens(tokens *tokenization.TokenCollection) {
+	debugTokenIndentCalculateOnce.Do(debugTokenIndentCalculate)
+
 	var builder strings.Builder
 
 	for i, t := range tokens.Data {
