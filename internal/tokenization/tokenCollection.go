@@ -186,8 +186,12 @@ func (c *TokenCollection) HTML() template.HTML {
 	return template.HTML(builder.String())
 }
 
-func (c *TokenCollection) SetAllTokensToEmptyType() {
+func (c *TokenCollection) SetAllTokenTypesToEmpty() {
+	c.SetAllTokenTypes(TokenTypeEmpty)
+}
+
+func (c *TokenCollection) SetAllTokenTypes(y TokenType) {
 	for _, t := range c.Data {
-		t.Type = TokenTypeEmpty
+		t.Type = y
 	}
 }

@@ -315,9 +315,7 @@ func compileTokenize(options *Options, tokens *tokenization.TokenCollection) (er
 					if prevs, foundPrevs := t.PrevNTypesCollection(potentialTypes); foundPrevs {
 						t.Type = tokenization.TokenTypeTab
 
-						for _, p := range prevs.Data {
-							p.Type = tokenization.TokenTypeEmpty
-						}
+						prevs.SetAllTokenTypesToEmpty()
 					}
 				}
 			}
@@ -469,13 +467,13 @@ func compileTokenizeImages(tokens *tokenization.TokenCollection) (err error) {
 
 			t.Attributes["title"] = titleString
 
-			spaceTokens.SetAllTokensToEmptyType()
-			titleTokens.SetAllTokensToEmptyType()
+			spaceTokens.SetAllTokenTypesToEmpty()
+			titleTokens.SetAllTokenTypesToEmpty()
 		}
 
-		textTokens.SetAllTokensToEmptyType()
-		midTokens.SetAllTokensToEmptyType()
-		linkTokens.SetAllTokensToEmptyType()
+		textTokens.SetAllTokenTypesToEmpty()
+		midTokens.SetAllTokenTypesToEmpty()
+		linkTokens.SetAllTokenTypesToEmpty()
 
 		squareBracketOpenToken.Type = tokenization.TokenTypeImage
 
@@ -582,16 +580,16 @@ func compileTokenizeLinks(tokens *tokenization.TokenCollection) (err error) {
 
 			t.Attributes["title"] = titleString
 
-			spaceTokens.SetAllTokensToEmptyType()
-			titleTokens.SetAllTokensToEmptyType()
+			spaceTokens.SetAllTokenTypesToEmpty()
+			titleTokens.SetAllTokenTypesToEmpty()
 		}
 
 		if foundTextTokens {
-			textTokens.SetAllTokensToEmptyType()
+			textTokens.SetAllTokenTypesToEmpty()
 		}
 
 		if foundMidTokens {
-			midTokens.SetAllTokensToEmptyType()
+			midTokens.SetAllTokenTypesToEmpty()
 		}
 
 		finalToken.Type = tokenization.TokenTypeLink
@@ -1103,9 +1101,7 @@ func compileClean(tokens *tokenization.TokenCollection) {
 			startTagToken.Type = tt
 			endTagToken.Type = tt
 
-			for _, p := range prevs.Data {
-				p.Type = tt
-			}
+			prevs.SetAllTokenTypes(tt)
 		}
 	}
 }
