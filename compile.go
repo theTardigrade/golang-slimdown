@@ -11,6 +11,14 @@ import (
 	"github.com/theTardigrade/golang-slimdown/internal/tokenization"
 )
 
+func CompileStringDefault(input string) (output template.HTML, err error) {
+	return CompileString(input, nil)
+}
+
+func CompileDefault(input []byte) (output template.HTML, err error) {
+	return Compile(input, nil)
+}
+
 func CompileString(input string, options *Options) (output template.HTML, err error) {
 	return Compile([]byte(input), options)
 }
@@ -66,10 +74,8 @@ func compileTokenize(options *Options, tokens *tokenization.TokenCollection) (er
 		tokens.PushNewEmpty(tokenization.TokenTypeDocumentBodyBound)
 	}
 
-	if options.EnableParagraphs {
-		defer tokens.PushNewEmpty(tokenization.TokenTypeParagraphBound)
-		tokens.PushNewEmpty(tokenization.TokenTypeParagraphBound)
-	}
+	defer tokens.PushNewEmpty(tokenization.TokenTypeParagraphBound)
+	tokens.PushNewEmpty(tokenization.TokenTypeParagraphBound)
 
 	for i, b := range tokens.Input {
 		switch b {
@@ -488,8 +494,12 @@ func compileGenerateHTMLToken(options *Options, t *tokenization.Token, tokenStac
 		}
 
 		if !options.EnableParagraphs {
-			t.HTML = []byte{'\n'}
-			break
+			if prev := t.Prev(); prev != nil {
+				if next := t.Next(); next != nil {
+					t.HTML = []byte{'\n'}
+					break
+				}
+			}
 		}
 
 		err = compileGenerateHTMLTokenHandleTag(t, tokenStack, options)
