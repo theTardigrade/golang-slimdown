@@ -63,6 +63,11 @@ func compileTokenize(options *Options, tokens *tokenization.TokenCollection) (er
 		backslashTokens = tokenization.TokenCollectionNew(tokens.Input)
 	}
 
+	var hyphenTokens *tokenization.TokenCollection
+	if options.EnableHyphenTransforms {
+		hyphenTokens = tokenization.TokenCollectionNewEmpty()
+	}
+
 	var headingTokens *tokenization.TokenCollection
 	if options.EnableHeadings {
 		headingTokens = tokenization.TokenCollectionNewEmpty()
@@ -96,6 +101,7 @@ func compileTokenize(options *Options, tokens *tokenization.TokenCollection) (er
 
 	for i, b := range tokens.Input {
 		switch b {
+		// TODO: add em and en dashes
 		case 138: // SPA_HAR
 			var match bool
 
@@ -184,7 +190,9 @@ func compileTokenize(options *Options, tokens *tokenization.TokenCollection) (er
 			}
 
 			if !match {
-				tokens.PushNewSingle(tokenization.TokenTypeHyphen, i)
+				hyphenTokens.PushAsIs(
+					tokens.PushNewSingle(tokenization.TokenTypeHyphen, i),
+				)
 			}
 		case '\\':
 			t := tokens.PushNewSingle(tokenization.TokenTypeBackslash, i)
@@ -342,6 +350,12 @@ func compileTokenize(options *Options, tokens *tokenization.TokenCollection) (er
 
 	if options.EnableHeadings && headingTokens.Len() > 0 {
 		if err = compileTokenizeHeadings(headingTokens); err != nil {
+			return
+		}
+	}
+
+	if options.EnableHyphenTransforms && hyphenTokens.Len() > 0 {
+		if err = compileTokenizeHyphenTransforms(hyphenTokens); err != nil {
 			return
 		}
 	}
@@ -648,6 +662,27 @@ func compileTokenizeHeadings(tokens *tokenization.TokenCollection) (err error) {
 	return
 }
 
+func compileTokenizeHyphenTransforms(tokens *tokenization.TokenCollection) (err error) {
+	for _, t := range tokens.Data {
+		if next := t.Next(); next != nil && next.Type == tokenization.TokenTypeSpace {
+			next.Type = tokenization.TokenTypeSpaceHair
+		}
+
+		if prev := t.Prev(); prev != nil && prev.Type == tokenization.TokenTypeSpace {
+			prev.Type = tokenization.TokenTypeSpaceHair
+		}
+
+		switch t.Type {
+		case tokenization.TokenTypeHyphenTriple:
+			t.Type = tokenization.TokenTypeDashEm
+		case tokenization.TokenTypeHyphenDouble:
+			t.Type = tokenization.TokenTypeDashEn
+		}
+	}
+
+	return
+}
+
 func compileTokenizeBackslashTransforms(tokens *tokenization.TokenCollection) (err error) {
 	for _, t := range tokens.Data {
 		var isHandled bool
@@ -790,12 +825,19 @@ func compileGenerateHTMLToken(options *Options, t *tokenization.Token, tokenStac
 		tokenization.TokenTypeHashTriple,
 		tokenization.TokenTypeHashQuadruple,
 		tokenization.TokenTypeHashQuintuple,
-		tokenization.TokenTypeHashSextuple:
+		tokenization.TokenTypeHashSextuple,
+		tokenization.TokenTypeHyphen,
+		tokenization.TokenTypeHyphenDouble,
+		tokenization.TokenTypeHyphenTriple:
 		compileGenerateHTMLTokenHandleBytes(t)
 	case tokenization.TokenTypeAngleBracketOpen:
 		t.HTML = []byte{'&', 'l', 't', ';'}
 	case tokenization.TokenTypeAngleBracketClose:
 		t.HTML = []byte{'&', 'g', 't', ';'}
+	case tokenization.TokenTypeDashEm:
+		t.HTML = []byte("—")
+	case tokenization.TokenTypeDashEn:
+		t.HTML = []byte("–")
 	case tokenization.TokenTypeTab:
 		t.HTML = []byte{'\t'}
 	case tokenization.TokenTypeCarriageReturn:
@@ -875,48 +917,6 @@ func compileGenerateHTMLToken(options *Options, t *tokenization.Token, tokenStac
 		err = compileGenerateHTMLTokenHandleTag(t, tokenStack, options)
 	case tokenization.TokenTypeSpaceHair:
 		t.HTML = []byte(" ")
-	case tokenization.TokenTypeHyphenTriple:
-		if !options.EnableHyphenTransforms {
-			compileGenerateHTMLTokenHandleBytes(t)
-			break
-		}
-
-		if next := t.Next(); next != nil && next.Type == tokenization.TokenTypeSpace {
-			next.Type = tokenization.TokenTypeSpaceHair
-		}
-
-		if prev := t.Prev(); prev != nil && prev.Type == tokenization.TokenTypeSpace {
-			prev.Type = tokenization.TokenTypeSpaceHair
-		}
-
-		t.HTML = []byte("—")
-	case tokenization.TokenTypeHyphenDouble:
-		if !options.EnableHyphenTransforms {
-			compileGenerateHTMLTokenHandleBytes(t)
-			break
-		}
-
-		if next := t.Next(); next != nil && next.Type == tokenization.TokenTypeSpace {
-			next.Type = tokenization.TokenTypeSpaceHair
-		}
-
-		if prev := t.Prev(); prev != nil && prev.Type == tokenization.TokenTypeSpace {
-			prev.Type = tokenization.TokenTypeSpaceHair
-		}
-
-		t.HTML = []byte("–")
-	case tokenization.TokenTypeHyphen:
-		if options.EnableHyphenTransforms {
-			if next := t.Next(); next != nil && next.Type == tokenization.TokenTypeSpace {
-				next.Type = tokenization.TokenTypeSpaceHair
-			}
-
-			if prev := t.Prev(); prev != nil && prev.Type == tokenization.TokenTypeSpace {
-				prev.Type = tokenization.TokenTypeSpaceHair
-			}
-		}
-
-		compileGenerateHTMLTokenHandleBytes(t)
 	case tokenization.TokenTypeHorizontalRule:
 		if !options.EnableHorizontalRules {
 			compileGenerateHTMLTokenHandleBytes(t)

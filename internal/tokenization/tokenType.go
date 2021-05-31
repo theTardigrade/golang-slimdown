@@ -44,6 +44,8 @@ const (
 	TokenTypeHyphen
 	TokenTypeHyphenDouble
 	TokenTypeHyphenTriple
+	TokenTypeDashEm
+	TokenTypeDashEn
 	TokenTypeEqualsDouble
 	TokenTypeBacktick
 	TokenTypeBacktickDouble
@@ -132,6 +134,10 @@ func (t TokenType) String() string {
 		return "HYP_DUB"
 	case TokenTypeHyphenTriple:
 		return "HYP_TRI"
+	case TokenTypeDashEm:
+		return "DSH_MMM"
+	case TokenTypeDashEn:
+		return "DSH_NNN"
 	case TokenTypeEqualsDouble:
 		return "EQU_DUB"
 	case TokenTypeBacktick:
