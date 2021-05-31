@@ -1,12 +1,10 @@
 package slimdown
 
 import (
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	globalFilepath "github.com/theTardigrade/golang-globalFilepath"
-	_ "github.com/theTardigrade/golang-slimdown/internal/test"
+	"github.com/theTardigrade/golang-slimdown/internal/test/assets"
 )
 
 var (
@@ -38,17 +36,9 @@ var (
 
 func init() {
 	const fileNamePrefix = "compileString"
-	var err error
 
-	testCompileStringInput, err = os.ReadFile(globalFilepath.Join(fileNamePrefix + "Input.md"))
-	if err != nil {
-		panic(err)
-	}
-
-	testCompileStringExpectedOutput, err = os.ReadFile(globalFilepath.Join(fileNamePrefix + "Output.html"))
-	if err != nil {
-		panic(err)
-	}
+	testCompileStringInput = assets.Load(fileNamePrefix + "Input.md")
+	testCompileStringExpectedOutput = assets.Load(fileNamePrefix + "Output.html")
 }
 
 func TestCompileString(t *testing.T) {
