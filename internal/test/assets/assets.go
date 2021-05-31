@@ -12,10 +12,10 @@ func init() {
 	}
 }
 
-func Load(fileName string) (content []byte) {
+func Load(relativeFilePath string) (content []byte) {
 	var err error
 
-	content, err = os.ReadFile(globalFilepath.Join(fileName))
+	content, err = os.ReadFile(globalFilepath.Join(relativeFilePath))
 	if err != nil {
 		panic(err)
 	}

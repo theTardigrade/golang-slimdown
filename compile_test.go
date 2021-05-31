@@ -35,10 +35,10 @@ var (
 )
 
 func init() {
-	const fileNamePrefix = "compileString"
+	const filePathPrefix = "compileString/"
 
-	testCompileStringInput = assets.Load(fileNamePrefix + "Input.md")
-	testCompileStringExpectedOutput = assets.Load(fileNamePrefix + "Output.html")
+	testCompileStringInput = assets.Load(filePathPrefix + "input.md")
+	testCompileStringExpectedOutput = assets.Load(filePathPrefix + "output.html")
 }
 
 func TestCompileString(t *testing.T) {
