@@ -15,6 +15,7 @@ type Options struct {
 	EnableHyphenTransforms    bool
 	EnableImages              bool
 	EnableLinks               bool
+	EnableLists               bool
 	EnableMarkTags            bool
 	EnableParagraphs          bool
 	EnableStrongTags          bool
@@ -41,6 +42,7 @@ var (
 		EnableHyphenTransforms:    true,
 		EnableImages:              true,
 		EnableLinks:               true,
+		EnableLists:               true,
 		EnableParagraphs:          true,
 		EnableStrongTags:          true,
 		MaxConsecutiveSpaces:      0,
@@ -57,6 +59,7 @@ func (o *Options) clone() *Options {
 	return &Options{
 		AllowHTML:                 o.AllowHTML,
 		CleanEmptyTags:            o.CleanEmptyTags,
+		DebugPrintOutput:          o.DebugPrintOutput,
 		DebugPrintTokens:          o.DebugPrintTokens,
 		EnableBackslashTransforms: o.EnableBackslashTransforms,
 		EnableBlockquotes:         o.EnableBlockquotes,
@@ -68,6 +71,7 @@ func (o *Options) clone() *Options {
 		EnableHyphenTransforms:    o.EnableHyphenTransforms,
 		EnableImages:              o.EnableImages,
 		EnableLinks:               o.EnableLinks,
+		EnableLists:               o.EnableLists,
 		EnableParagraphs:          o.EnableParagraphs,
 		EnableStrongTags:          o.EnableStrongTags,
 		MaxConsecutiveSpaces:      o.MaxConsecutiveSpaces,

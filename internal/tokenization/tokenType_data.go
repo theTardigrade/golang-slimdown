@@ -29,7 +29,7 @@ var (
 		TokenTypeUnderscoreDouble:  {Tags: []string{"strong"}},
 		TokenTypeUnderscoreTriple:  {Tags: []string{"strong", "em"}},
 		TokenTypeBacktick:          {Tags: []string{"code"}},
-		TokenTypeLink:              {Tags: []string{"a"}},
-		TokenTypeImage:             {Tags: []string{"img"}, SelfClosing: true},
+		TokenTypeLinkBound:         {Tags: []string{"a"}},
+		TokenTypeImageBound:        {Tags: []string{"img"}, SelfClosing: true},
 	}
 )

@@ -56,8 +56,8 @@ const (
 	TokenTypeSquareBracketClose
 	TokenTypeAngleBracketOpen
 	TokenTypeAngleBracketClose
-	TokenTypeLink
-	TokenTypeImage
+	TokenTypeLinkBound
+	TokenTypeImageBound
 )
 
 func (t TokenType) String() string {
@@ -158,10 +158,10 @@ func (t TokenType) String() string {
 		return "ABK_OPN"
 	case TokenTypeAngleBracketClose:
 		return "ABK_CLS"
-	case TokenTypeLink:
-		return "LNK"
-	case TokenTypeImage:
-		return "IMG"
+	case TokenTypeLinkBound:
+		return "LNK_BND"
+	case TokenTypeImageBound:
+		return "IMG_BND"
 	}
 
 	return "UNK"

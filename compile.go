@@ -5,6 +5,7 @@ import (
 	"html"
 	"html/template"
 	"net/url"
+	"regexp"
 	"sort"
 
 	"github.com/theTardigrade/golang-slimdown/internal/debug"
@@ -464,7 +465,7 @@ func compileTokenizeImages(tokens *tokenization.TokenCollection) (err error) {
 		linkString = linkURL.String()
 		textString = html.EscapeString(textString)
 
-		t.Type = tokenization.TokenTypeImage
+		t.Type = tokenization.TokenTypeImageBound
 		t.Attributes = map[string]string{
 			"alt": textString,
 			"src": linkString,
@@ -489,13 +490,19 @@ func compileTokenizeImages(tokens *tokenization.TokenCollection) (err error) {
 		midTokens.SetAllTokenTypesToEmpty()
 		linkTokens.SetAllTokenTypesToEmpty()
 
-		squareBracketOpenToken.Type = tokenization.TokenTypeImage
+		squareBracketOpenToken.Type = tokenization.TokenTypeImageBound
 
 		finalToken.Type = tokenization.TokenTypeEmpty
 	}
 
 	return
 }
+
+var (
+	compileTokenizeLinksEmailRegexp = regexp.MustCompile(
+		"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$",
+	)
+)
 
 func compileTokenizeLinks(tokens *tokenization.TokenCollection) (err error) {
 	for _, t := range tokens.Data {
@@ -580,7 +587,11 @@ func compileTokenizeLinks(tokens *tokenization.TokenCollection) (err error) {
 		}
 		linkString = linkURL.String()
 
-		t.Type = tokenization.TokenTypeLink
+		if compileTokenizeLinksEmailRegexp.MatchString(linkString) {
+			linkString = "mailto:" + linkString
+		}
+
+		t.Type = tokenization.TokenTypeLinkBound
 		t.Attributes = map[string]string{"href": linkString}
 
 		if foundSpaceTokens {
@@ -606,7 +617,7 @@ func compileTokenizeLinks(tokens *tokenization.TokenCollection) (err error) {
 			midTokens.SetAllTokenTypesToEmpty()
 		}
 
-		finalToken.Type = tokenization.TokenTypeLink
+		finalToken.Type = tokenization.TokenTypeLinkBound
 	}
 
 	return
@@ -931,13 +942,13 @@ func compileGenerateHTMLToken(options *Options, t *tokenization.Token, tokenStac
 		}
 
 		err = compileGenerateHTMLTokenHandleTag(t, tokenStack, options)
-	case tokenization.TokenTypeLink:
+	case tokenization.TokenTypeLinkBound:
 		if !options.EnableLinks {
 			return
 		}
 
 		err = compileGenerateHTMLTokenHandleTag(t, tokenStack, options)
-	case tokenization.TokenTypeImage:
+	case tokenization.TokenTypeImageBound:
 		if !options.EnableImages {
 			return
 		}
