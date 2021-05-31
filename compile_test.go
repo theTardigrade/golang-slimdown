@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	globalFilepath "github.com/theTardigrade/golang-globalFilepath"
+	_ "github.com/theTardigrade/golang-slimdown/internal/test"
 )
 
 var (
@@ -36,17 +37,15 @@ var (
 )
 
 func init() {
-	testInit()
-
-	const filePathPrefix = "testAssets/compileString"
+	const fileNamePrefix = "compileString"
 	var err error
 
-	testCompileStringInput, err = os.ReadFile(globalFilepath.Join(filePathPrefix + "Input.md"))
+	testCompileStringInput, err = os.ReadFile(globalFilepath.Join(fileNamePrefix + "Input.md"))
 	if err != nil {
 		panic(err)
 	}
 
-	testCompileStringExpectedOutput, err = os.ReadFile(globalFilepath.Join(filePathPrefix + "Output.html"))
+	testCompileStringExpectedOutput, err = os.ReadFile(globalFilepath.Join(fileNamePrefix + "Output.html"))
 	if err != nil {
 		panic(err)
 	}
