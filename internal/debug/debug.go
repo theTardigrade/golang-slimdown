@@ -40,16 +40,17 @@ func init() {
 	printTokensIndent = printTokensMinIndent + printTokensIntMaxLen
 }
 
-func PrintTokens(tokens *tokenization.TokenCollection) {
+func PrintTokens(tokens *tokenization.TokenListCollection) {
 	var builder strings.Builder
+	var i int
 
-	for i, t := range tokens.Data {
-		if i > 0 {
+	for t := tokens.HeadToken; t != nil; t = t.RawNext {
+		if i++; i > 1 {
 			builder.WriteByte('\n')
 		}
 
 		builder.WriteString(
-			fmt.Sprintf("%*[2]d:%[2]s", printTokensIndent, t.Type),
+			fmt.Sprintf("%*[2]d:%[2]s:%*[3]d", printTokensIndent, t.Type, t.Indent),
 		)
 	}
 

@@ -3,18 +3,27 @@ package tokenization
 type Token struct {
 	RawPrev         *Token
 	RawNext         *Token
-	Collection      *TokenCollection
+	ListCollection  *TokenListCollection
 	Attributes      map[string]string
 	HTML            []byte
 	InputStartIndex int
 	InputEndIndex   int
 	Type            TokenType
+	Indent          int
+}
+
+func tokenNew(y TokenType, inputStartIndex int, inputEndIndex int) *Token {
+	return &Token{
+		Type:            y,
+		InputStartIndex: inputStartIndex,
+		InputEndIndex:   inputEndIndex,
+	}
 }
 
 func (t *Token) SimpleCloneForClosingTag() *Token {
 	return &Token{
-		Collection: t.Collection,
-		Type:       t.Type,
+		ListCollection: t.ListCollection,
+		Type:           t.Type,
 	}
 }
 
@@ -98,12 +107,12 @@ func (t *Token) NextOfType(y TokenType) *Token {
 	}
 }
 
-func (t *Token) PrevNCollection(n int) (prevs *TokenCollection, foundAll bool) {
+func (t *Token) PrevNCollection(n int) (prevs *TokenSliceCollection, foundAll bool) {
 	if t == nil {
 		return
 	}
 
-	prevs = TokenCollectionNewEmpty()
+	prevs = TokenSliceCollectionNew()
 	t2 := t
 	var i int
 
@@ -116,7 +125,7 @@ func (t *Token) PrevNCollection(n int) (prevs *TokenCollection, foundAll bool) {
 			return
 		}
 
-		prevs.PushAsIs(t2)
+		prevs.Push(t2)
 
 		i++
 	}
@@ -128,12 +137,12 @@ func (t *Token) PrevNCollection(n int) (prevs *TokenCollection, foundAll bool) {
 	return
 }
 
-func (t *Token) NextNCollection(n int) (nexts *TokenCollection, foundAll bool) {
+func (t *Token) NextNCollection(n int) (nexts *TokenSliceCollection, foundAll bool) {
 	if t == nil {
 		return
 	}
 
-	nexts = TokenCollectionNewEmpty()
+	nexts = TokenSliceCollectionNew()
 	t2 := t
 	var i int
 
@@ -146,7 +155,7 @@ func (t *Token) NextNCollection(n int) (nexts *TokenCollection, foundAll bool) {
 			return
 		}
 
-		nexts.PushAsIs(t2)
+		nexts.Push(t2)
 
 		i++
 	}
@@ -158,12 +167,12 @@ func (t *Token) NextNCollection(n int) (nexts *TokenCollection, foundAll bool) {
 	return
 }
 
-func (t *Token) PrevNTypesCollection(types []TokenType) (prevs *TokenCollection, foundAll bool) {
+func (t *Token) PrevNTypesCollection(types []TokenType) (prevs *TokenSliceCollection, foundAll bool) {
 	if t == nil {
 		return
 	}
 
-	prevs = TokenCollectionNewEmpty()
+	prevs = TokenSliceCollectionNew()
 	t2 := t
 	l := len(types)
 	var i int
@@ -177,7 +186,7 @@ func (t *Token) PrevNTypesCollection(types []TokenType) (prevs *TokenCollection,
 			return
 		}
 
-		prevs.PushAsIs(t2)
+		prevs.Push(t2)
 
 		i++
 	}
@@ -189,12 +198,12 @@ func (t *Token) PrevNTypesCollection(types []TokenType) (prevs *TokenCollection,
 	return
 }
 
-func (t *Token) NextNTypesCollection(types []TokenType) (nexts *TokenCollection, foundAll bool) {
+func (t *Token) NextNTypesCollection(types []TokenType) (nexts *TokenSliceCollection, foundAll bool) {
 	if t == nil {
 		return
 	}
 
-	nexts = TokenCollectionNewEmpty()
+	nexts = TokenSliceCollectionNew()
 	t2 := t
 	l := len(types)
 	var i int
@@ -208,7 +217,7 @@ func (t *Token) NextNTypesCollection(types []TokenType) (nexts *TokenCollection,
 			return
 		}
 
-		nexts.PushAsIs(t2)
+		nexts.Push(t2)
 
 		i++
 	}
@@ -220,8 +229,8 @@ func (t *Token) NextNTypesCollection(types []TokenType) (nexts *TokenCollection,
 	return
 }
 
-func (t *Token) PrevsCollectionUntilMeetToken(stopToken *Token) (prevs *TokenCollection, foundAny bool) {
-	prevs = TokenCollectionNewEmpty()
+func (t *Token) PrevsCollectionUntilMeetToken(stopToken *Token) (prevs *TokenSliceCollection, foundAny bool) {
+	prevs = TokenSliceCollectionNew()
 	t2 := t
 
 	for {
@@ -229,7 +238,7 @@ func (t *Token) PrevsCollectionUntilMeetToken(stopToken *Token) (prevs *TokenCol
 			break
 		}
 
-		prevs.PushAsIs(t2)
+		prevs.Push(t2)
 	}
 
 	if prevs.Len() > 0 {
@@ -239,93 +248,16 @@ func (t *Token) PrevsCollectionUntilMeetToken(stopToken *Token) (prevs *TokenCol
 	return
 }
 
-func (t *Token) PrevsCollectionUntilStartOfPotentialTypes(potentialTypes ...TokenType) (prevs *TokenCollection, foundAny bool) {
-	prevs = TokenCollectionNewEmpty()
+func (t *Token) NextsCollectionUntilMeetType(y TokenType) (nexts *TokenSliceCollection, foundAny bool) {
+	nexts = TokenSliceCollectionNew()
 	t2 := t
 
 	for {
-		if t2 = t2.Prev(); t2 == nil {
+		if t2 = t2.Next(); t2 == nil || t2.Type == y {
 			break
 		}
 
-		var match bool
-
-		for _, y := range potentialTypes {
-			if t2.Type == y {
-				match = true
-				break
-			}
-		}
-
-		if match {
-			break
-		}
-
-		prevs.PushAsIs(t2)
-	}
-
-	if prevs.Len() > 0 {
-		foundAny = true
-	}
-
-	return
-}
-
-func (t *Token) PrevsCollectionUntilEndOfPotentialTypes(potentialTypes ...TokenType) (prevs *TokenCollection, foundAny bool) {
-	prevs = TokenCollectionNewEmpty()
-	t2 := t
-
-	for {
-		if t2 = t2.Prev(); t2 == nil {
-			break
-		}
-
-		var match bool
-
-		for _, y := range potentialTypes {
-			if t2.Type == y {
-				match = true
-				break
-			}
-		}
-
-		if !match {
-			break
-		}
-
-		prevs.PushAsIs(t2)
-	}
-
-	if prevs.Len() > 0 {
-		foundAny = true
-	}
-
-	return
-}
-
-func (t *Token) NextsCollectionUntilStartOfPotentialTypes(potentialTypes ...TokenType) (nexts *TokenCollection, foundAny bool) {
-	nexts = TokenCollectionNewEmpty()
-	t2 := t
-
-	for {
-		if t2 = t2.Next(); t2 == nil {
-			break
-		}
-
-		var match bool
-
-		for _, y := range potentialTypes {
-			if t2.Type == y {
-				match = true
-				break
-			}
-		}
-
-		if match {
-			break
-		}
-
-		nexts.PushAsIs(t2)
+		nexts.Push(t2)
 	}
 
 	if nexts.Len() > 0 {
@@ -335,8 +267,104 @@ func (t *Token) NextsCollectionUntilStartOfPotentialTypes(potentialTypes ...Toke
 	return
 }
 
-func (t *Token) NextsCollectionUntilEndOfPotentialTypes(potentialTypes ...TokenType) (nexts *TokenCollection, foundAny bool) {
-	nexts = TokenCollectionNewEmpty()
+func (t *Token) PrevsCollectionUntilStartOfPotentialTypes(potentialTypes ...TokenType) (prevs *TokenSliceCollection, foundAny bool) {
+	prevs = TokenSliceCollectionNew()
+	t2 := t
+
+	for {
+		if t2 = t2.Prev(); t2 == nil {
+			break
+		}
+
+		var match bool
+
+		for _, y := range potentialTypes {
+			if t2.Type == y {
+				match = true
+				break
+			}
+		}
+
+		if match {
+			break
+		}
+
+		prevs.Push(t2)
+	}
+
+	if prevs.Len() > 0 {
+		foundAny = true
+	}
+
+	return
+}
+
+func (t *Token) PrevsCollectionUntilEndOfPotentialTypes(potentialTypes ...TokenType) (prevs *TokenSliceCollection, foundAny bool) {
+	prevs = TokenSliceCollectionNew()
+	t2 := t
+
+	for {
+		if t2 = t2.Prev(); t2 == nil {
+			break
+		}
+
+		var match bool
+
+		for _, y := range potentialTypes {
+			if t2.Type == y {
+				match = true
+				break
+			}
+		}
+
+		if !match {
+			break
+		}
+
+		prevs.Push(t2)
+	}
+
+	if prevs.Len() > 0 {
+		foundAny = true
+	}
+
+	return
+}
+
+func (t *Token) NextsCollectionUntilStartOfPotentialTypes(potentialTypes ...TokenType) (nexts *TokenSliceCollection, foundAny bool) {
+	nexts = TokenSliceCollectionNew()
+	t2 := t
+
+	for {
+		if t2 = t2.Next(); t2 == nil {
+			break
+		}
+
+		var match bool
+
+		for _, y := range potentialTypes {
+			if t2.Type == y {
+				match = true
+				break
+			}
+		}
+
+		if match {
+			break
+		}
+
+		nexts.Push(t2)
+	}
+
+	if nexts.Len() > 0 {
+		foundAny = true
+	}
+
+	return
+}
+
+func (t *Token) NextsCollectionUntilEndOfPotentialTypes(potentialTypes ...TokenType) (nexts *TokenSliceCollection, foundAny bool) {
+	nexts = TokenSliceCollectionNew()
 	t2 := t
 
 	for {
@@ -357,7 +385,7 @@ func (t *Token) NextsCollectionUntilEndOfPotentialTypes(potentialTypes ...TokenT
 			break
 		}
 
-		nexts.PushAsIs(t2)
+		nexts.Push(t2)
 	}
 
 	if nexts.Len() > 0 {
@@ -368,6 +396,10 @@ func (t *Token) NextsCollectionUntilEndOfPotentialTypes(potentialTypes ...TokenT
 }
 
 func (t *Token) Len() int {
+	if t.Type == TokenTypeEmpty {
+		return 0
+	}
+
 	if l := len(t.HTML); l > 0 {
 		return l
 	}
@@ -382,11 +414,11 @@ func (t *Token) Len() int {
 }
 
 func (t *Token) Bytes() []byte {
-	if t.Type == TokenTypeEmpty || t.Collection == nil || t.Len() <= 0 {
+	if t.Type == TokenTypeEmpty || t.ListCollection == nil || t.Len() <= 0 {
 		return []byte{}
 	}
 
-	return t.Collection.Input[t.InputStartIndex:t.InputEndIndex]
+	return t.ListCollection.Input[t.InputStartIndex:t.InputEndIndex]
 }
 
 func (t *Token) String() string {

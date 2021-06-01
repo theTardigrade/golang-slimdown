@@ -19,9 +19,10 @@ type Options struct {
 	EnableMarkTags            bool
 	EnableParagraphs          bool
 	EnableStrongTags          bool
+	MaxConsecutiveTabs        int
 	MaxConsecutiveSpaces      int
-	SpacesToTabs              int
-	TabsToSpaces              int
+	SpacesToTab               int
+	TabToSpaces               int
 
 	isCloned bool
 }
@@ -45,9 +46,10 @@ var (
 		EnableLists:               true,
 		EnableParagraphs:          true,
 		EnableStrongTags:          true,
+		MaxConsecutiveTabs:        0,
 		MaxConsecutiveSpaces:      0,
-		SpacesToTabs:              0,
-		TabsToSpaces:              0,
+		SpacesToTab:               0,
+		TabToSpaces:               0,
 	}
 )
 
@@ -74,9 +76,10 @@ func (o *Options) clone() *Options {
 		EnableLists:               o.EnableLists,
 		EnableParagraphs:          o.EnableParagraphs,
 		EnableStrongTags:          o.EnableStrongTags,
+		MaxConsecutiveTabs:        o.MaxConsecutiveTabs,
 		MaxConsecutiveSpaces:      o.MaxConsecutiveSpaces,
-		SpacesToTabs:              o.SpacesToTabs,
-		TabsToSpaces:              o.TabsToSpaces,
+		SpacesToTab:               o.SpacesToTab,
+		TabToSpaces:               o.TabToSpaces,
 		isCloned:                  true,
 	}
 }

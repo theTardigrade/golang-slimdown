@@ -23,12 +23,14 @@ var (
 		EnableHyphenTransforms:    true,
 		EnableImages:              true,
 		EnableLinks:               true,
+		EnableLists:               true,
 		EnableMarkTags:            true,
 		EnableParagraphs:          true,
 		EnableStrongTags:          true,
-		MaxConsecutiveSpaces:      0,
-		SpacesToTabs:              0,
-		TabsToSpaces:              0,
+		MaxConsecutiveSpaces:      2,
+		MaxConsecutiveTabs:        2,
+		SpacesToTab:               5,
+		TabToSpaces:               0,
 	}
 	testCompileStringInput          []byte
 	testCompileStringExpectedOutput []byte

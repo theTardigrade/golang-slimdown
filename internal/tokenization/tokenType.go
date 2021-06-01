@@ -22,10 +22,10 @@ const (
 	TokenTypeHeading5Bound
 	TokenTypeHeading6Bound
 	TokenTypeLineBreak
-	TokenTypeText
-	TokenTypeSpace
+	TokenTypeTextGroup
+	TokenTypeSpaceGroup
 	TokenTypeSpaceHair
-	TokenTypeTab
+	TokenTypeTabGroup
 	TokenTypeCarriageReturn
 	TokenTypeHorizontalRule
 	TokenTypeBackslash
@@ -58,6 +58,8 @@ const (
 	TokenTypeAngleBracketClose
 	TokenTypeLinkBound
 	TokenTypeImageBound
+	TokenTypeUnorderedListBound
+	TokenTypeListItemBound
 )
 
 func (t TokenType) String() string {
@@ -90,13 +92,13 @@ func (t TokenType) String() string {
 		return "HD6_BND"
 	case TokenTypeLineBreak:
 		return "LBK"
-	case TokenTypeText:
+	case TokenTypeTextGroup:
 		return "TXT"
-	case TokenTypeSpace:
+	case TokenTypeSpaceGroup:
 		return "SPC"
 	case TokenTypeSpaceHair:
 		return "SPC_HAR"
-	case TokenTypeTab:
+	case TokenTypeTabGroup:
 		return "TAB"
 	case TokenTypeCarriageReturn:
 		return "CRT"
@@ -162,6 +164,10 @@ func (t TokenType) String() string {
 		return "LNK_BND"
 	case TokenTypeImageBound:
 		return "IMG_BND"
+	case TokenTypeUnorderedListBound:
+		return "UND_LST_BND"
+	case TokenTypeListItemBound:
+		return "LST_ITM_BND"
 	}
 
 	return "UNK"

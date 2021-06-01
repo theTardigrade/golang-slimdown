@@ -2,9 +2,9 @@ package tokenization
 
 var (
 	TokenTypeListLinkSegmentText = []TokenType{
-		TokenTypeText,
-		TokenTypeSpace,
-		TokenTypeTab,
+		TokenTypeTextGroup,
+		TokenTypeSpaceGroup,
+		TokenTypeTabGroup,
 		TokenTypeBackslash,
 		TokenTypeAsterisk,
 		TokenTypeAsteriskDouble,
@@ -22,19 +22,19 @@ var (
 		TokenTypeParenthesisClose,
 	}
 	TokenTypeListLinkSegmentLink = []TokenType{
-		TokenTypeText,
+		TokenTypeTextGroup,
 		TokenTypeAsterisk,
 		TokenTypeAsteriskDouble,
 		TokenTypeUnderscore,
 		TokenTypeUnderscoreDouble,
 	}
 	TokenTypeListLinkSegmentTitle = []TokenType{
-		TokenTypeText,
+		TokenTypeTextGroup,
 		TokenTypeAsterisk,
 		TokenTypeAsteriskDouble,
 		TokenTypeUnderscore,
 		TokenTypeUnderscoreDouble,
-		TokenTypeSpace,
+		TokenTypeSpaceGroup,
 	}
 )
 
