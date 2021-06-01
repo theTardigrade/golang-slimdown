@@ -9,6 +9,8 @@ type TokenType uint8
 
 const (
 	TokenTypeEmpty TokenType = iota
+	TokenTypeStart
+	TokenTypeEnd
 	TokenTypeDocumentDoctype
 	TokenTypeDocumentHTMLBound
 	TokenTypeDocumentHeadBound
@@ -66,6 +68,10 @@ func (t TokenType) String() string {
 	switch t {
 	case TokenTypeEmpty:
 		return "EMP"
+	case TokenTypeStart:
+		return "STA"
+	case TokenTypeEnd:
+		return "END"
 	case TokenTypeDocumentDoctype:
 		return "DOC_TYP"
 	case TokenTypeDocumentHTMLBound:

@@ -96,6 +96,9 @@ func compileTokenize(options *Options, tokens *tokenization.TokenListCollection)
 		spaceAndTabTokens = tokenization.TokenSliceCollectionNew()
 	}
 
+	defer tokens.PushNewEmpty(tokenization.TokenTypeEnd)
+	tokens.PushNewEmpty(tokenization.TokenTypeStart)
+
 	if options.EnableDocumentTags {
 		tokens.PushNewEmpty(tokenization.TokenTypeDocumentDoctype)
 
@@ -913,8 +916,10 @@ func compileGenerateHTML(options *Options, tokens *tokenization.TokenListCollect
 
 func compileGenerateHTMLToken(options *Options, t *tokenization.Token, tokenStack *tokenization.TokenSliceCollection) (err error) {
 	switch y := t.Type; y {
-	case tokenization.TokenTypeEmpty:
-		break
+	case tokenization.TokenTypeEmpty,
+		tokenization.TokenTypeStart,
+		tokenization.TokenTypeEnd:
+		t.HTML = []byte{}
 	case tokenization.TokenTypeTextGroup:
 		compileGenerateHTMLTokenHandleBytes(t)
 

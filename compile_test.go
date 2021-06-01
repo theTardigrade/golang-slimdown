@@ -17,6 +17,7 @@ func init() {
 	const filePathPrefix = "compileString/"
 
 	for _, key := range []string{
+		"spacesToTab",
 		"tabToSpaces",
 	} {
 		prefix := filePathPrefix + key
@@ -50,6 +51,36 @@ func TestCompileString_tabToSpaces(t *testing.T) {
 
 func BenchmarkCompileString_tabToSpaces(b *testing.B) {
 	const key = "tabToSpaces"
+
+	for i := 0; i < b.N; i++ {
+		_, err := Compile(testCompileStringInput[key], testCompileStringOptions[key])
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func init() {
+	testCompileStringOptions["spacesToTab"] = &Options{
+		DebugPrintTokens: true,
+		EnableParagraphs: true,
+		SpacesToTab:      4,
+	}
+}
+
+func TestCompileString_spacesToTab(t *testing.T) {
+	const key = "spacesToTab"
+
+	output, err := Compile(testCompileStringInput[key], testCompileStringOptions[key])
+	if err != nil {
+		panic(err)
+	}
+
+	assert.Equal(t, string(testCompileStringExpectedOutput[key]), string(output))
+}
+
+func BenchmarkCompileString_spacesToTab(b *testing.B) {
+	const key = "spacesToTab"
 
 	for i := 0; i < b.N; i++ {
 		_, err := Compile(testCompileStringInput[key], testCompileStringOptions[key])
