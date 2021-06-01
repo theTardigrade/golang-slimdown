@@ -93,13 +93,13 @@ func (t TokenType) String() string {
 	case TokenTypeLineBreak:
 		return "LBK"
 	case TokenTypeTextGroup:
-		return "TXT"
+		return "TXT_GRP"
 	case TokenTypeSpaceGroup:
-		return "SPC"
+		return "SPC_GRP"
 	case TokenTypeSpaceHair:
 		return "SPC_HAR"
 	case TokenTypeTabGroup:
-		return "TAB"
+		return "TAB_GRP"
 	case TokenTypeCarriageReturn:
 		return "CRT"
 	case TokenTypeHorizontalRule:

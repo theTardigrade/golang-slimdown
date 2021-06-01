@@ -8,53 +8,51 @@ import (
 )
 
 var (
-	testCompileStringOptions = &Options{
-		AllowHTML:                 false,
-		CleanEmptyTags:            false,
-		DebugPrintOutput:          false,
-		DebugPrintTokens:          true,
-		EnableBackslashTransforms: true,
-		EnableBlockquotes:         true,
-		EnableCodeTags:            true,
-		EnableDocumentTags:        false,
-		EnableEmTags:              true,
-		EnableHeadings:            true,
-		EnableHorizontalRules:     false,
-		EnableHyphenTransforms:    true,
-		EnableImages:              true,
-		EnableLinks:               true,
-		EnableLists:               true,
-		EnableMarkTags:            true,
-		EnableParagraphs:          true,
-		EnableStrongTags:          true,
-		MaxConsecutiveSpaces:      2,
-		MaxConsecutiveTabs:        2,
-		SpacesToTab:               5,
-		TabToSpaces:               0,
-	}
-	testCompileStringInput          []byte
-	testCompileStringExpectedOutput []byte
+	testCompileStringInput          = make(map[string][]byte)
+	testCompileStringExpectedOutput = make(map[string][]byte)
+	testCompileStringOptions        = make(map[string]*Options)
 )
 
 func init() {
 	const filePathPrefix = "compileString/"
 
-	testCompileStringInput = assets.Load(filePathPrefix + "input.md")
-	testCompileStringExpectedOutput = assets.Load(filePathPrefix + "output.html")
+	for _, key := range []string{
+		"tabToSpaces",
+	} {
+		prefix := filePathPrefix + key
+		input := assets.Load(prefix + "Input.md")
+		output := assets.Load(prefix + "Output.html")
+
+		testCompileStringInput[key] = input
+		testCompileStringExpectedOutput[key] = output
+	}
+
 }
 
-func TestCompileString(t *testing.T) {
-	output, err := Compile(testCompileStringInput, testCompileStringOptions)
+func init() {
+	testCompileStringOptions["tabToSpaces"] = &Options{
+		DebugPrintTokens: true,
+		EnableParagraphs: true,
+		TabToSpaces:      1,
+	}
+}
+
+func TestCompileString_tabToSpaces(t *testing.T) {
+	const key = "tabToSpaces"
+
+	output, err := Compile(testCompileStringInput[key], testCompileStringOptions[key])
 	if err != nil {
 		panic(err)
 	}
 
-	assert.Equal(t, string(testCompileStringExpectedOutput), string(output))
+	assert.Equal(t, string(testCompileStringExpectedOutput[key]), string(output))
 }
 
-func BenchmarkCompileString(b *testing.B) {
+func BenchmarkCompileString_tabToSpaces(b *testing.B) {
+	const key = "tabToSpaces"
+
 	for i := 0; i < b.N; i++ {
-		_, err := Compile(testCompileStringInput, testCompileStringOptions)
+		_, err := Compile(testCompileStringInput[key], testCompileStringOptions[key])
 		if err != nil {
 			panic(err)
 		}

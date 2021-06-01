@@ -392,7 +392,7 @@ func compileTokenize(options *Options, tokens *tokenization.TokenListCollection)
 
 func compileTokenizeSpacesAndTabs(tokens *tokenization.TokenSliceCollection, options *Options) (err error) {
 	for _, t := range tokens.Tokens {
-		switch y := t.Type; y {
+		switch t.Type {
 		case tokenization.TokenTypeSpaceGroup:
 			if stt := options.SpacesToTab; stt > 0 {
 				for t.Len() >= stt {
@@ -417,19 +417,21 @@ func compileTokenizeSpacesAndTabs(tokens *tokenization.TokenSliceCollection, opt
 			}
 		case tokenization.TokenTypeTabGroup:
 			if tts := options.TabToSpaces; tts > 0 {
+				t.Type = tokenization.TokenTypeSpaceGroup
+				t.InputEndIndex = t.Len() * tts
+
 				if p := t.Prev(); p != nil && p.Type == tokenization.TokenTypeSpaceGroup {
-					p.InputEndIndex += tts
-				} else {
-					t.Type = tokenization.TokenTypeSpaceGroup
-					t.InputEndIndex = t.InputStartIndex + tts
+					p.InputEndIndex += t.Len()
+					t.Type = tokenization.TokenTypeEmpty
+					t = p
 				}
 
-				if mcs := options.MaxConsecutiveSpaces; mcs > 0 || t.Len() > mcs {
+				if mcs := options.MaxConsecutiveSpaces; mcs > 0 && t.Len() > mcs {
 					t.InputEndIndex = t.InputStartIndex + mcs
 				}
 			}
 
-			if t.Type == y {
+			if t.Type == tokenization.TokenTypeTabGroup {
 				if mct := options.MaxConsecutiveTabs; mct > 0 && t.Len() > mct {
 					t.InputEndIndex = t.InputStartIndex + mct
 				}
@@ -920,23 +922,12 @@ func compileGenerateHTMLToken(options *Options, t *tokenization.Token, tokenStac
 			t.HTML = []byte(html.EscapeString(string(t.HTML)))
 		}
 	case tokenization.TokenTypeSpaceGroup:
-		t.HTML = []byte{}
+		l := t.Len()
+		t.HTML = make([]byte, l)
 
-		for i := t.Len(); i > 0; i-- {
-			t.HTML = append(t.HTML, ' ')
+		for i := 0; i < l; i++ {
+			t.HTML[i] = ' '
 		}
-
-		// if mcs := options.MaxConsecutiveSpaces; mcs > 0 {
-		// 	nextSpaceTokens, foundNextSpaceTokens := t.NextsCollectionUntilEndOfPotentialTypes(y)
-		// 	if foundNextSpaceTokens {
-		// 		for i, t2 := range nextSpaceTokens.Tokens {
-		// 			if i+1 < mcs {
-		// 				continue
-		// 			}
-		// 			t2.Type = tokenization.TokenTypeEmpty
-		// 		}
-		// 	}
-		// }
 	case tokenization.TokenTypeDocumentBodyBound,
 		tokenization.TokenTypeDocumentHeadBound,
 		tokenization.TokenTypeDocumentHTMLBound,
