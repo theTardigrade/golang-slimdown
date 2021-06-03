@@ -61,7 +61,6 @@ func Compile(input []byte, options *Options) (output template.HTML, err error) {
 }
 
 func compileTokenize(options *Options, tokens *tokenization.TokenListCollection) (err error) {
-
 	var backslashTokens *tokenization.TokenSliceCollection
 	if options.EnableBackslashTransforms {
 		backslashTokens = tokenization.TokenSliceCollectionNew()
@@ -201,6 +200,8 @@ func compileTokenizeMain(
 	for i, b := range tokens.Input {
 		switch b {
 		// TODO: add em and en dashes
+		case 0: // NULL
+			tokens.PushNewEmpty(tokenization.TokenTypeEmpty)
 		case 138: // SPA_HAR
 			var match bool
 
