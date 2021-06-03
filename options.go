@@ -3,6 +3,7 @@ package slimdown
 type Options struct {
 	AllowHTML                 bool
 	CleanEmptyTags            bool
+	CleanEmptyTokens          bool
 	DebugPrintOutput          bool
 	DebugPrintTokens          bool
 	EnableBackslashTransforms bool
@@ -31,6 +32,7 @@ var (
 	DefaultOptions = Options{
 		AllowHTML:                 false,
 		CleanEmptyTags:            false,
+		CleanEmptyTokens:          false,
 		DebugPrintOutput:          false,
 		DebugPrintTokens:          false,
 		EnableBackslashTransforms: false,
@@ -61,6 +63,7 @@ func (o *Options) clone() *Options {
 	return &Options{
 		AllowHTML:                 o.AllowHTML,
 		CleanEmptyTags:            o.CleanEmptyTags,
+		CleanEmptyTokens:          o.CleanEmptyTokens,
 		DebugPrintOutput:          o.DebugPrintOutput,
 		DebugPrintTokens:          o.DebugPrintTokens,
 		EnableBackslashTransforms: o.EnableBackslashTransforms,

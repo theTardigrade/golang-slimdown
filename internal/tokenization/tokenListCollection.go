@@ -152,6 +152,37 @@ func (c *TokenListCollection) InsertBefore(referenceToken *Token, tokens ...*Tok
 	}
 }
 
+func (c *TokenListCollection) Remove(tokens ...*Token) {
+	for _, t := range tokens {
+		if t == nil || t.ListCollection != c {
+			continue
+		}
+
+		p := t.RawPrev
+		n := t.RawNext
+
+		if p != nil {
+			p.RawNext = n
+		} else {
+			c.HeadToken = n
+			n.RawPrev = nil
+		}
+
+		if n != nil {
+			n.RawPrev = p
+		} else {
+			c.TailToken = p
+			p.RawNext = nil
+		}
+
+		t.RawNext = nil
+		t.RawPrev = nil
+
+		t.ListCollection = nil
+		c.len--
+	}
+}
+
 // func (c *TokenListCollection) PushAsIs(tokens ...*Token) {
 // 	for _, t := range tokens {
 // 		if t == nil {

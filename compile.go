@@ -2,7 +2,6 @@ package slimdown
 
 import (
 	"bytes"
-	"fmt"
 	"html"
 	"html/template"
 	"net/url"
@@ -32,22 +31,24 @@ func Compile(input []byte, options *Options) (output template.HTML, err error) {
 		options = DefaultOptions.clone()
 	}
 
-	err = compileTokenize(options, tokens)
-	if err != nil {
+	if err = compileTokenize(options, tokens); err != nil {
 		return
+	}
+
+	if options.CleanEmptyTokens {
+		compileCleanEmptyTokens(tokens)
 	}
 
 	if options.DebugPrintTokens {
 		debug.PrintTokens(tokens)
 	}
 
-	err = compileGenerateHTML(options, tokens)
-	if err != nil {
+	if err = compileGenerateHTML(options, tokens); err != nil {
 		return
 	}
 
 	if options.CleanEmptyTags {
-		compileClean(tokens)
+		compileCleanEmptyTags(tokens)
 	}
 
 	output = tokens.HTML()
@@ -832,7 +833,6 @@ func compileTokenizeBlockquotes(tokens *tokenization.TokenSliceCollection) (err 
 		default:
 			continue
 		}
-		fmt.Println("PB", prevBound.Type)
 
 		nextSpace := t.Next()
 		if nextSpace == nil || nextSpace.Type != tokenization.TokenTypeSpaceGroup {
@@ -847,11 +847,9 @@ func compileTokenizeBlockquotes(tokens *tokenization.TokenSliceCollection) (err 
 			nextBound = t.ListCollection.PushNewEmpty(tokenization.TokenTypeEmpty)
 		}
 
-		fmt.Println("NB", nextBound.Type)
 		nextBound.ListCollection.InsertNewEmptyAfter(nextBound, tokenization.TokenTypeBlockquoteBound)
 
 		prevPrevBound := prevBound.Prev()
-		fmt.Println("PPB", prevPrevBound.Type)
 		if prevBound.Type == tokenization.TokenTypeBlockquoteBound {
 			prevBound.Type = tokenization.TokenTypeEmpty
 		} else if prevPrevBound != nil && prevPrevBound.Type != tokenization.TokenTypeBlockquoteBound {
@@ -860,45 +858,8 @@ func compileTokenizeBlockquotes(tokens *tokenization.TokenSliceCollection) (err 
 			prevPrevBound.Type = tokenization.TokenTypeEmpty
 		}
 
-		// if prevPrevBound != nil && prevPrevBound.Type == tokenization.TokenTypeBlockquoteBound {
-		// 	prevPrevBound.Type = tokenization.TokenTypeEmpty
-		// } else {
-		// 	prevBound.ListCollection.InsertNewEmptyBefore(prevBound, tokenization.TokenTypeBlockquoteBound)
-		// }
-
 		nextSpace.Type = tokenization.TokenTypeEmpty
 		t.Type = tokenization.TokenTypeEmpty
-
-		// 	prevBeforeBound := prevBound.Prev()
-		// 	var followOn bool
-
-		// 	if prevBound.Type == tokenization.TokenTypeBlockquoteBound {
-		// 		prevBound.Type = tokenization.TokenTypeEmpty
-
-		// 		if prevBeforeBound != nil && prevBeforeBound.Type == tokenization.TokenTypeParagraphBound {
-		// 			prevBeforeBound.Type = tokenization.TokenTypeLineBreak
-		// 			followOn = true
-		// 		}
-		// 	} else {
-		// 		if prevBeforeBound != nil && prevBeforeBound.Type == tokenization.TokenTypeBlockquoteBound {
-		// 			prevBeforeBound.Type = tokenization.TokenTypeEmpty
-		// 			prevBound.Type = tokenization.TokenTypeEmpty
-		// 		} else {
-		// 			prevBound.Type = tokenization.TokenTypeBlockquoteBound
-		// 		}
-		// 	}
-
-		// 	nextBound.Type = tokenization.TokenTypeBlockquoteBound
-
-		// 	nextBound.ListCollection.InsertNewEmptyBefore(nextBound, tokenization.TokenTypeParagraphBound)
-
-		// 	nextSpace.Type = tokenization.TokenTypeEmpty
-
-		// 	if followOn {
-		// 		t.Type = tokenization.TokenTypeEmpty
-		// 	} else {
-		// 		t.Type = tokenization.TokenTypeParagraphBound
-		// 	}
 	}
 
 	return
@@ -1010,6 +971,18 @@ func compileTokenizeBackslashTransforms(tokens *tokenization.TokenSliceCollectio
 	}
 
 	return
+}
+
+func compileCleanEmptyTokens(tokens *tokenization.TokenListCollection) {
+	var n *tokenization.Token
+
+	for t := tokens.HeadToken; t != nil; t = n {
+		n = t.RawNext
+
+		if t.Type == tokenization.TokenTypeEmpty {
+			tokens.Remove(t)
+		}
+	}
 }
 
 func compileGenerateHTML(options *Options, tokens *tokenization.TokenListCollection) (err error) {
@@ -1371,7 +1344,7 @@ func compileGenerateHTMLTokenHandleTag(t *tokenization.Token, tokenStack *tokeni
 	return
 }
 
-func compileClean(tokens *tokenization.TokenListCollection) {
+func compileCleanEmptyTags(tokens *tokenization.TokenListCollection) {
 	for _, pair := range tokens.TagPairCleanData {
 		startTagToken, endTagToken := pair[0], pair[1]
 
