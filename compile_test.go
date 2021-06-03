@@ -17,6 +17,7 @@ func init() {
 	const filePathPrefix = "compileString/"
 
 	for _, key := range []string{
+		"blockquotes",
 		"spacesToTab",
 		"tabToSpaces",
 	} {
@@ -27,19 +28,21 @@ func init() {
 		testCompileStringInput[key] = input
 		testCompileStringExpectedOutput[key] = output
 	}
-
 }
 
+/* blockquotes */
+
 func init() {
-	testCompileStringOptions["tabToSpaces"] = &Options{
-		DebugPrintTokens: true,
-		EnableParagraphs: true,
-		TabToSpaces:      1,
+	testCompileStringOptions["blockquotes"] = &Options{
+		DebugPrintTokens:  true,
+		EnableBlockquotes: true,
+		EnableHeadings:    true,
+		EnableParagraphs:  true,
 	}
 }
 
-func TestCompileString_tabToSpaces(t *testing.T) {
-	const key = "tabToSpaces"
+func TestCompileString_blockquotes(t *testing.T) {
+	const key = "blockquotes"
 
 	output, err := Compile(testCompileStringInput[key], testCompileStringOptions[key])
 	if err != nil {
@@ -49,8 +52,8 @@ func TestCompileString_tabToSpaces(t *testing.T) {
 	assert.Equal(t, string(testCompileStringExpectedOutput[key]), string(output))
 }
 
-func BenchmarkCompileString_tabToSpaces(b *testing.B) {
-	const key = "tabToSpaces"
+func BenchmarkCompileString_blockquotes(b *testing.B) {
+	const key = "blockquotes"
 
 	for i := 0; i < b.N; i++ {
 		_, err := Compile(testCompileStringInput[key], testCompileStringOptions[key])
@@ -59,6 +62,8 @@ func BenchmarkCompileString_tabToSpaces(b *testing.B) {
 		}
 	}
 }
+
+/* spacesToTab */
 
 func init() {
 	testCompileStringOptions["spacesToTab"] = &Options{
@@ -81,6 +86,38 @@ func TestCompileString_spacesToTab(t *testing.T) {
 
 func BenchmarkCompileString_spacesToTab(b *testing.B) {
 	const key = "spacesToTab"
+
+	for i := 0; i < b.N; i++ {
+		_, err := Compile(testCompileStringInput[key], testCompileStringOptions[key])
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+/* tabToSpaces */
+
+func init() {
+	testCompileStringOptions["tabToSpaces"] = &Options{
+		DebugPrintTokens: true,
+		EnableParagraphs: true,
+		TabToSpaces:      1,
+	}
+}
+
+func TestCompileString_tabToSpaces(t *testing.T) {
+	const key = "tabToSpaces"
+
+	output, err := Compile(testCompileStringInput[key], testCompileStringOptions[key])
+	if err != nil {
+		panic(err)
+	}
+
+	assert.Equal(t, string(testCompileStringExpectedOutput[key]), string(output))
+}
+
+func BenchmarkCompileString_tabToSpaces(b *testing.B) {
+	const key = "tabToSpaces"
 
 	for i := 0; i < b.N; i++ {
 		_, err := Compile(testCompileStringInput[key], testCompileStringOptions[key])

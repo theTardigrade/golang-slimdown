@@ -60,6 +60,7 @@ func Compile(input []byte, options *Options) (output template.HTML, err error) {
 }
 
 func compileTokenize(options *Options, tokens *tokenization.TokenListCollection) (err error) {
+
 	var backslashTokens *tokenization.TokenSliceCollection
 	if options.EnableBackslashTransforms {
 		backslashTokens = tokenization.TokenSliceCollectionNew()
@@ -73,6 +74,11 @@ func compileTokenize(options *Options, tokens *tokenization.TokenListCollection)
 	var headingTokens *tokenization.TokenSliceCollection
 	if options.EnableHeadings {
 		headingTokens = tokenization.TokenSliceCollectionNew()
+	}
+
+	var blockquoteTokens *tokenization.TokenSliceCollection
+	if options.EnableBlockquotes {
+		blockquoteTokens = tokenization.TokenSliceCollectionNew()
 	}
 
 	var linkTokens *tokenization.TokenSliceCollection
@@ -96,6 +102,82 @@ func compileTokenize(options *Options, tokens *tokenization.TokenListCollection)
 		spaceAndTabTokens = tokenization.TokenSliceCollectionNew()
 	}
 
+	compileTokenizeMain(
+		options,
+		tokens,
+		backslashTokens,
+		hyphenTokens,
+		headingTokens,
+		blockquoteTokens,
+		linkTokens,
+		listTokens,
+		imageTokens,
+		spaceAndTabTokens,
+	)
+
+	if listTokens != nil && listTokens.Len() > 0 {
+		if err = compileTokenizeLists(listTokens); err != nil {
+			return
+		}
+	}
+
+	if imageTokens != nil && imageTokens.Len() > 0 {
+		if err = compileTokenizeImages(imageTokens); err != nil {
+			return
+		}
+	}
+
+	if linkTokens != nil && linkTokens.Len() > 0 {
+		if err = compileTokenizeLinks(linkTokens); err != nil {
+			return
+		}
+	}
+
+	if headingTokens != nil && headingTokens.Len() > 0 {
+		if err = compileTokenizeHeadings(headingTokens); err != nil {
+			return
+		}
+	}
+
+	if blockquoteTokens != nil && blockquoteTokens.Len() > 0 {
+		if err = compileTokenizeBlockquotes(blockquoteTokens); err != nil {
+			return
+		}
+	}
+
+	if hyphenTokens != nil && hyphenTokens.Len() > 0 {
+		if err = compileTokenizeHyphenTransforms(hyphenTokens); err != nil {
+			return
+		}
+	}
+
+	if backslashTokens != nil && backslashTokens.Len() > 0 {
+		if err = compileTokenizeBackslashTransforms(backslashTokens); err != nil {
+			return
+		}
+	}
+
+	if spaceAndTabTokens != nil && spaceAndTabTokens.Len() > 0 {
+		if err = compileTokenizeSpacesAndTabs(spaceAndTabTokens, options); err != nil {
+			return
+		}
+	}
+
+	return
+}
+
+func compileTokenizeMain(
+	options *Options,
+	tokens *tokenization.TokenListCollection,
+	backslashTokens,
+	hyphenTokens,
+	headingTokens,
+	blockquoteTokens,
+	linkTokens,
+	listTokens,
+	imageTokens,
+	spaceAndTabTokens *tokenization.TokenSliceCollection,
+) {
 	defer tokens.PushNewEmpty(tokenization.TokenTypeEnd)
 	tokens.PushNewEmpty(tokenization.TokenTypeStart)
 
@@ -166,7 +248,7 @@ func compileTokenize(options *Options, tokens *tokenization.TokenListCollection)
 			if !match {
 				t := tokens.PushNewSingle(tokenization.TokenTypeAsterisk, i)
 
-				if options.EnableLists {
+				if listTokens != nil {
 					listTokens.Push(t)
 				}
 			}
@@ -217,7 +299,7 @@ func compileTokenize(options *Options, tokens *tokenization.TokenListCollection)
 		case '\\':
 			t := tokens.PushNewSingle(tokenization.TokenTypeBackslash, i)
 
-			if options.EnableBackslashTransforms {
+			if backslashTokens != nil {
 				backslashTokens.Push(t)
 			}
 		case '#':
@@ -286,7 +368,7 @@ func compileTokenize(options *Options, tokens *tokenization.TokenListCollection)
 		case '!':
 			t := tokens.PushNewSingle(tokenization.TokenTypeExclamation, i)
 
-			if options.EnableImages {
+			if imageTokens != nil {
 				imageTokens.Push(t)
 			}
 		case '\r':
@@ -312,7 +394,7 @@ func compileTokenize(options *Options, tokens *tokenization.TokenListCollection)
 		case '[':
 			t := tokens.PushNewSingle(tokenization.TokenTypeSquareBracketOpen, i)
 
-			if options.EnableLinks {
+			if linkTokens != nil {
 				linkTokens.Push(t)
 			}
 		case ']':
@@ -320,14 +402,14 @@ func compileTokenize(options *Options, tokens *tokenization.TokenListCollection)
 		case '<':
 			t := tokens.PushNewSingle(tokenization.TokenTypeAngleBracketOpen, i)
 
-			if options.EnableLinks {
+			if linkTokens != nil {
 				linkTokens.Push(t)
 			}
 		case '>':
 			t := tokens.PushNewSingle(tokenization.TokenTypeAngleBracketClose, i)
 
-			if options.EnableHeadings {
-				headingTokens.Push(t)
+			if blockquoteTokens != nil {
+				blockquoteTokens.Push(t)
 			}
 		case ' ':
 			if t := tokens.Peek(); t != nil && t.Type == tokenization.TokenTypeSpaceGroup {
@@ -347,50 +429,6 @@ func compileTokenize(options *Options, tokens *tokenization.TokenListCollection)
 			}
 		}
 	}
-
-	if listTokens != nil && listTokens.Len() > 0 {
-		if err = compileTokenizeLists(listTokens); err != nil {
-			return
-		}
-	}
-
-	if imageTokens != nil && imageTokens.Len() > 0 {
-		if err = compileTokenizeImages(imageTokens); err != nil {
-			return
-		}
-	}
-
-	if linkTokens != nil && linkTokens.Len() > 0 {
-		if err = compileTokenizeLinks(linkTokens); err != nil {
-			return
-		}
-	}
-
-	if headingTokens != nil && headingTokens.Len() > 0 {
-		if err = compileTokenizeHeadings(headingTokens); err != nil {
-			return
-		}
-	}
-
-	if hyphenTokens != nil && hyphenTokens.Len() > 0 {
-		if err = compileTokenizeHyphenTransforms(hyphenTokens); err != nil {
-			return
-		}
-	}
-
-	if backslashTokens != nil && backslashTokens.Len() > 0 {
-		if err = compileTokenizeBackslashTransforms(backslashTokens); err != nil {
-			return
-		}
-	}
-
-	if spaceAndTabTokens != nil && spaceAndTabTokens.Len() > 0 {
-		if err = compileTokenizeSpacesAndTabs(spaceAndTabTokens, options); err != nil {
-			return
-		}
-	}
-
-	return
 }
 
 func compileTokenizeSpacesAndTabs(tokens *tokenization.TokenSliceCollection, options *Options) (err error) {
@@ -780,6 +818,92 @@ func compileTokenizeLinks(tokens *tokenization.TokenSliceCollection) (err error)
 	return
 }
 
+func compileTokenizeBlockquotes(tokens *tokenization.TokenSliceCollection) (err error) {
+	for _, t := range tokens.Tokens {
+		prevBound := t.Prev()
+		if prevBound == nil {
+			continue
+		}
+		switch prevBound.Type {
+		case tokenization.TokenTypeBlockquoteBound,
+			tokenization.TokenTypeParagraphBound,
+			tokenization.TokenTypeLineBreak:
+			// noop
+		default:
+			continue
+		}
+		fmt.Println("PB", prevBound.Type)
+
+		nextSpace := t.Next()
+		if nextSpace == nil || nextSpace.Type != tokenization.TokenTypeSpaceGroup {
+			continue
+		}
+
+		nextBound := t.NextOfTypes(
+			tokenization.TokenTypeParagraphBound,
+			tokenization.TokenTypeLineBreak,
+		)
+		if nextBound == nil {
+			nextBound = t.ListCollection.PushNewEmpty(tokenization.TokenTypeEmpty)
+		}
+
+		fmt.Println("NB", nextBound.Type)
+		nextBound.ListCollection.InsertNewEmptyAfter(nextBound, tokenization.TokenTypeBlockquoteBound)
+
+		prevPrevBound := prevBound.Prev()
+		fmt.Println("PPB", prevPrevBound.Type)
+		if prevBound.Type == tokenization.TokenTypeBlockquoteBound {
+			prevBound.Type = tokenization.TokenTypeEmpty
+		} else if prevPrevBound != nil && prevPrevBound.Type != tokenization.TokenTypeBlockquoteBound {
+			prevBound.ListCollection.InsertNewEmptyBefore(prevBound, tokenization.TokenTypeBlockquoteBound)
+		} else {
+			prevPrevBound.Type = tokenization.TokenTypeEmpty
+		}
+
+		// if prevPrevBound != nil && prevPrevBound.Type == tokenization.TokenTypeBlockquoteBound {
+		// 	prevPrevBound.Type = tokenization.TokenTypeEmpty
+		// } else {
+		// 	prevBound.ListCollection.InsertNewEmptyBefore(prevBound, tokenization.TokenTypeBlockquoteBound)
+		// }
+
+		nextSpace.Type = tokenization.TokenTypeEmpty
+		t.Type = tokenization.TokenTypeEmpty
+
+		// 	prevBeforeBound := prevBound.Prev()
+		// 	var followOn bool
+
+		// 	if prevBound.Type == tokenization.TokenTypeBlockquoteBound {
+		// 		prevBound.Type = tokenization.TokenTypeEmpty
+
+		// 		if prevBeforeBound != nil && prevBeforeBound.Type == tokenization.TokenTypeParagraphBound {
+		// 			prevBeforeBound.Type = tokenization.TokenTypeLineBreak
+		// 			followOn = true
+		// 		}
+		// 	} else {
+		// 		if prevBeforeBound != nil && prevBeforeBound.Type == tokenization.TokenTypeBlockquoteBound {
+		// 			prevBeforeBound.Type = tokenization.TokenTypeEmpty
+		// 			prevBound.Type = tokenization.TokenTypeEmpty
+		// 		} else {
+		// 			prevBound.Type = tokenization.TokenTypeBlockquoteBound
+		// 		}
+		// 	}
+
+		// 	nextBound.Type = tokenization.TokenTypeBlockquoteBound
+
+		// 	nextBound.ListCollection.InsertNewEmptyBefore(nextBound, tokenization.TokenTypeParagraphBound)
+
+		// 	nextSpace.Type = tokenization.TokenTypeEmpty
+
+		// 	if followOn {
+		// 		t.Type = tokenization.TokenTypeEmpty
+		// 	} else {
+		// 		t.Type = tokenization.TokenTypeParagraphBound
+		// 	}
+	}
+
+	return
+}
+
 func compileTokenizeHeadings(tokens *tokenization.TokenSliceCollection) (err error) {
 	for _, t := range tokens.Tokens {
 		prevBound := t.Prev()
@@ -855,7 +979,6 @@ func compileTokenizeBackslashTransforms(tokens *tokenization.TokenSliceCollectio
 	for _, t := range tokens.Tokens {
 		var isHandled bool
 
-		fmt.Println(99999, t.RawNext, t.Next(), t.RawPrev, t.Prev())
 		if nextText := t.Next(); nextText != nil && nextText.Type == tokenization.TokenTypeTextGroup {
 			if nextText.Len() > 0 {
 				switch isHandled = true; nextText.ListCollection.Input[nextText.InputStartIndex] {

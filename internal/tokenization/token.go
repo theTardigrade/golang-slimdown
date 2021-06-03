@@ -107,6 +107,30 @@ func (t *Token) NextOfType(y TokenType) *Token {
 	}
 }
 
+func (t *Token) NextOfTypes(potentialTypes ...TokenType) *Token {
+	if t == nil {
+		return nil
+	}
+
+	if len(potentialTypes) == 1 {
+		return t.NextOfType(potentialTypes[0])
+	}
+
+	t2 := t
+
+	for {
+		if t2 = t2.RawNext; t2 == nil {
+			return nil
+		}
+
+		for _, y := range potentialTypes {
+			if t2.Type == y {
+				return t2
+			}
+		}
+	}
+}
+
 func (t *Token) PrevNCollection(n int) (prevs *TokenSliceCollection, foundAll bool) {
 	if t == nil {
 		return
